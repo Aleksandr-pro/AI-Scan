@@ -686,3 +686,12 @@ img { display: block; max-width: 100%; height: auto; }
   .foot-in { grid-template-columns: 1fr; }
   .sbtn { width: 46px; height: 46px; }
 }
+
+/* ——— SVG icon layer (единый outline-набор, 24-grid) ——— */
+.sec-kicker .k-ico { flex: 0 0 auto; color: var(--ink); }
+.sec.dark .sec-kicker .k-ico { color: var(--dark-text); }
+.lab-ico, .threats-ico, .qb-ico { vertical-align: -3px; margin-right: 7px; }
+.pipe-ico { display: block; color: rgba(236,238,234,0.5); margin-bottom: 14px; }
+.dl-ico { vertical-align: -3px; margin-right: 10px; color: #8A9099; }
+.btn svg { vertical-align: -3px; margin-right: 7px; }
+.btn:hover svg { color: inherit; }

@@ -1,29 +1,24 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Indicator } from '../../core/types';
-import { colors, radius, spacing, verdictTheme } from '../theme';
+import { colors, spacing, verdictTheme } from '../theme';
 import { fmtWeight } from '../format';
 import { Chip } from './Card';
+import { VerdictIcon } from './Icon';
 
-/** Карточка одного признака с объяснением «почему». */
+/** Строка признака: чистый фон, воздух и тонкий разделитель. */
 export function IndicatorItem({ item }: { item: Indicator }) {
-  const accentColor =
-    item.side === 'ai'
-      ? colors.ai
-      : item.side === 'human'
-        ? colors.human
-        : colors.neutral;
   const tone =
-    item.side === 'ai' ? colors.ai : item.side === 'human' ? colors.human : colors.textDim;
+    item.side === 'ai' ? colors.ai : item.side === 'human' ? colors.human : colors.neutral;
   return (
-    <View style={[styles.wrap, { borderLeftColor: accentColor }]}>
+    <View style={styles.wrap}>
       <View style={styles.header}>
         <Text style={styles.title}>{item.title}</Text>
-        <View style={styles.weightBox}>
-          <Text style={[styles.weight, { color: tone }]}>
-            {item.weight === 0 ? '—' : fmtWeight(item.weight)}
-          </Text>
-        </View>
+        {item.weight !== 0 && (
+          <View style={[styles.weightTag, { backgroundColor: tone + '16' }]}>
+            <Text style={[styles.weight, { color: tone }]}>{fmtWeight(item.weight)}</Text>
+          </View>
+        )}
       </View>
       <Text style={styles.detail}>{item.detail}</Text>
       {item.evidence ? (
@@ -33,19 +28,7 @@ export function IndicatorItem({ item }: { item: Indicator }) {
   );
 }
 
-/** Полоса уверенности 0…100. */
-export function ConfidenceBar({ value, color }: { value: number; color: string }) {
-  return (
-    <View style={styles.barTrack}>
-      <View style={[styles.barFill, { width: `${Math.max(2, Math.min(100, value))}%`, backgroundColor: color }]} />
-      {Array.from({ length: 4 }).map((_, i) => (
-        <View key={i} style={[styles.barTick, { left: `${(i + 1) * 20}%` }]} />
-      ))}
-    </View>
-  );
-}
-
-/** Герой вердикта: иконка, название, уверенность. */
+/** Герой вердикта: статус и метрика разделены, шкала тонкая, монохромная, с цветной точкой. */
 export function VerdictHero({
   verdict,
   label,
@@ -58,20 +41,37 @@ export function VerdictHero({
   summary: string;
 }) {
   const t = verdictTheme[verdict];
+  const short =
+    verdict === 'AI'
+      ? 'ИИ подозревается'
+      : verdict === 'HUMAN'
+        ? 'Следов ИИ не найдено'
+        : verdict === 'MIXED'
+          ? 'Человек + ИИ'
+          : 'Данных мало';
+  const conf = Math.max(0, Math.min(100, confidence));
   return (
-    <View style={[styles.hero, { backgroundColor: t.bg, borderColor: t.border }]}>
+    <View style={styles.hero}>
       <View style={styles.heroTop}>
-        <Text style={styles.heroIcon}>{t.icon}</Text>
-        <View style={styles.heroTexts}>
-          <Text style={[styles.heroLabel, { color: t.color }]}>{label}</Text>
-          <Text style={styles.heroVerdict}>{verdict === 'AI' ? 'ИИ подозревается' : verdict === 'HUMAN' ? 'Следов ИИ не найдено' : verdict === 'MIXED' ? 'Человек + ИИ' : 'Данных мало'}</Text>
-        </View>
-        <View style={[styles.confBox, { borderColor: t.color }]}>
-          <Text style={[styles.confValue, { color: t.color }]}>{confidence}%</Text>
+        <VerdictIcon verdict={verdict} size={22} color={t.color} />
+        <Text style={[styles.heroLabel, { color: t.color }]} numberOfLines={2}>
+          {label}
+        </Text>
+        <View style={styles.confBox}>
+          <Text style={styles.confValue}>{conf}%</Text>
           <Text style={styles.confCaption}>уверенность</Text>
         </View>
       </View>
-      <ConfidenceBar value={confidence} color={t.color} />
+
+      <View style={styles.scaleRow}>
+        <Text style={styles.scaleCaption}>{short}</Text>
+        <Text style={styles.scaleRange}>0—100</Text>
+      </View>
+      <View style={styles.scaleTrack}>
+        <View style={[styles.scaleFill, { width: `${conf}%` }]} />
+        <View style={[styles.scaleDot, { left: `${conf}%` }, { backgroundColor: t.color }]} />
+      </View>
+
       <Text style={styles.summary}>{summary}</Text>
     </View>
   );
@@ -92,14 +92,11 @@ export function CategoryChip({ category }: { category: string }) {
 }
 
 const styles = StyleSheet.create({
+  /* признак */
   wrap: {
-    backgroundColor: colors.bgElevated,
-    borderRadius: radius.m,
-    borderLeftWidth: 3,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    padding: spacing.m,
-    marginBottom: spacing.s,
+    paddingVertical: 13,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
   },
   header: {
     flexDirection: 'row',
@@ -114,15 +111,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 19,
   },
-  weightBox: {
+  weightTag: {
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 7,
   },
   weight: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 12.5,
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   detail: {
@@ -133,72 +129,74 @@ const styles = StyleSheet.create({
   },
   evidence: {
     color: colors.textFaint,
-    fontSize: 12,
+    fontSize: 11.5,
     marginTop: 6,
     fontFamily: 'monospace',
   },
+
+  /* герой вердикта */
   hero: {
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    padding: spacing.l,
-    marginBottom: spacing.m,
+    paddingTop: spacing.s,
+    marginBottom: spacing.l,
   },
   heroTop: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.m,
   },
-  heroIcon: {
-    fontSize: 34,
-  },
-  heroTexts: {
-    flex: 1,
-  },
   heroLabel: {
-    fontSize: 17,
+    flex: 1,
+    fontSize: 15.5,
     fontWeight: '800',
-    lineHeight: 22,
-  },
-  heroVerdict: {
-    color: colors.textDim,
-    fontSize: 13,
-    marginTop: 2,
+    lineHeight: 20,
   },
   confBox: {
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderRadius: radius.m,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    minWidth: 84,
+    alignItems: 'flex-end',
   },
   confValue: {
-    fontSize: 22,
-    fontWeight: '900',
+    color: colors.text,
+    fontSize: 26,
+    fontWeight: '800',
     fontVariant: ['tabular-nums'],
+    letterSpacing: -0.5,
   },
   confCaption: {
     color: colors.textFaint,
-    fontSize: 10,
-    marginTop: -2,
+    fontSize: 10.5,
+    fontWeight: '400',
+    marginTop: 1,
   },
-  barTrack: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    marginTop: spacing.m,
-    overflow: 'hidden',
+  scaleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginTop: spacing.l,
+  },
+  scaleCaption: { color: colors.textDim, fontSize: 12.5 },
+  scaleRange: { color: colors.textFaint, fontSize: 10.5, fontFamily: 'monospace' },
+  scaleTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    marginTop: 8,
     justifyContent: 'center',
   },
-  barFill: {
-    height: 8,
-    borderRadius: 4,
-  },
-  barTick: {
+  scaleFill: {
     position: 'absolute',
-    width: 1,
-    height: 8,
-    backgroundColor: 'rgba(11,14,20,0.55)',
+    left: 0,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(232,236,244,0.22)',
+  },
+  scaleDot: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginLeft: -5,
+    top: -3,
+    borderWidth: 2,
+    borderColor: colors.bg,
   },
   summary: {
     color: colors.textDim,

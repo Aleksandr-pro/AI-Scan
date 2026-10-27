@@ -10,10 +10,11 @@ import {
 import { AnalysisResult, EvidenceSide } from '../../core/types';
 import { sidePowers } from '../../core/scoring';
 import { buildReport } from '../../core/report';
-import { colors, radius, spacing } from '../theme';
-import { fmtBytes, fmtDate, fmtDuration, KIND_ICON, KIND_LABEL } from '../format';
+import { colors, spacing } from '../theme';
+import { fmtBytes, fmtDate, fmtDuration, KIND_LABEL } from '../format';
 import { Card, SectionTitle } from '../components/Card';
 import { CategoryChip, IndicatorItem, VerdictHero } from '../components/Result';
+import { IconHome, IconRefresh, IconShare, KindIcon } from '../components/Icon';
 
 interface Props {
   result: AnalysisResult;
@@ -72,9 +73,9 @@ export function ResultScreen({ result, onScanAgain, onHome, onDelete }: Props) {
         summary={result.summary}
       />
 
-      <Card>
+      <View style={styles.fileBlock}>
         <View style={styles.fileRow}>
-          <Text style={styles.fileIcon}>{KIND_ICON[t.mediaKind]}</Text>
+          <KindIcon kind={t.mediaKind} size={24} color={colors.textDim} />
           <View style={{ flex: 1 }}>
             <Text style={styles.fileName} numberOfLines={2}>{t.fileName}</Text>
             <Text style={styles.fileMeta}>
@@ -94,9 +95,11 @@ export function ResultScreen({ result, onScanAgain, onHome, onDelete }: Props) {
               ]}
             />
           </View>
-          <Text style={[styles.powerLabel, { color: colors.human }]}>чел. {powers.human}</Text>
+          <Text style={[styles.powerLabel, { color: colors.human, textAlign: 'right' }]}>
+            чел. {powers.human}
+          </Text>
         </View>
-      </Card>
+      </View>
 
       <SectionTitle
         title="Признаки и почему они важны"
@@ -140,24 +143,27 @@ export function ResultScreen({ result, onScanAgain, onHome, onDelete }: Props) {
       </Card>
 
       {result.warnings.length > 0 && (
-        <Card accent={colors.mixed}>
+        <View style={styles.warnBlock}>
           <Text style={styles.warnTitle}>Примечания анализа</Text>
           {result.warnings.map((w, idx) => (
             <Text key={idx} style={styles.warnText}>• {w}</Text>
           ))}
-        </Card>
+        </View>
       )}
 
       <View style={styles.actions}>
         <Pressable onPress={onShare} style={({ pressed }) => [styles.btnPrimary, pressed && styles.pressed]}>
-          <Text style={styles.btnPrimaryText}>{shared ? '✓ Отчёт отправлен' : '📤 Поделиться отчётом'}</Text>
+          <IconShare size={17} color="#062730" strokeWidth={2} />
+          <Text style={styles.btnPrimaryText}>{shared ? 'Отчёт отправлен' : 'Поделиться отчётом'}</Text>
         </Pressable>
         <View style={styles.actionsRow}>
           <Pressable onPress={onScanAgain} style={({ pressed }) => [styles.btnGhost, pressed && styles.pressed]}>
-            <Text style={styles.btnGhostText}>🔄 Сканировать ещё</Text>
+            <IconRefresh size={16} color={colors.textDim} />
+            <Text style={styles.btnGhostText}>Сканировать ещё</Text>
           </Pressable>
           <Pressable onPress={onHome} style={({ pressed }) => [styles.btnGhost, pressed && styles.pressed]}>
-            <Text style={styles.btnGhostText}>🏠 Главная</Text>
+            <IconHome size={16} color={colors.textDim} />
+            <Text style={styles.btnGhostText}>Главная</Text>
           </Pressable>
         </View>
         {onDelete && (
@@ -179,20 +185,25 @@ export function ResultScreen({ result, onScanAgain, onHome, onDelete }: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: spacing.l, paddingTop: spacing.l },
+  fileBlock: {
+    paddingBottom: spacing.l,
+    marginBottom: spacing.s,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
   fileRow: { flexDirection: 'row', gap: spacing.m, alignItems: 'center' },
-  fileIcon: { fontSize: 26 },
   fileName: { color: colors.text, fontSize: 15, fontWeight: '700' },
   fileMeta: { color: colors.textFaint, fontSize: 12, marginTop: 3 },
   powersRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.s, marginTop: spacing.m },
-  powerLabel: { fontSize: 12.5, fontWeight: '800', minWidth: 58 },
+  powerLabel: { fontSize: 11.5, fontWeight: '700', minWidth: 54, letterSpacing: 0.2 },
   powersTrack: {
     flex: 1,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.human + '55',
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.07)',
     overflow: 'hidden',
   },
-  powersAi: { height: 10, backgroundColor: colors.ai },
+  powersAi: { height: 4, backgroundColor: colors.ai + 'BB' },
   group: { marginBottom: spacing.s },
   groupHead: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: spacing.s },
   groupDot: { width: 9, height: 9, borderRadius: 5 },
@@ -209,27 +220,42 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: spacing.m },
-  warnTitle: { color: colors.mixed, fontSize: 14, fontWeight: '700', marginBottom: 6 },
+  warnBlock: {
+    marginTop: spacing.m,
+    paddingTop: spacing.m,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  warnTitle: { color: colors.textFaint, fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 6 },
   warnText: { color: colors.textDim, fontSize: 12.5, lineHeight: 18 },
   actions: { marginTop: spacing.l, gap: spacing.s },
   actionsRow: { flexDirection: 'row', gap: spacing.s },
   btnPrimary: {
     backgroundColor: colors.accent,
-    borderRadius: radius.m,
+    borderRadius: 14,
     paddingVertical: 14,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#000000',
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
-  btnPrimaryText: { color: '#04141A', fontSize: 15.5, fontWeight: '800' },
+  btnPrimaryText: { color: '#062730', fontSize: 15, fontWeight: '800' },
   btnGhost: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.card,
-    borderRadius: radius.m,
-    paddingVertical: 12,
+    backgroundColor: colors.bgElevated,
+    borderRadius: 14,
+    paddingVertical: 13,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
   },
-  btnGhostText: { color: colors.text, fontSize: 13.5, fontWeight: '700' },
+  btnGhostText: { color: colors.textDim, fontSize: 13.5, fontWeight: '700' },
   btnDelete: { paddingVertical: 8, alignItems: 'center' },
   btnDeleteText: { color: colors.textFaint, fontSize: 12.5 },
   pressed: { opacity: 0.7 },

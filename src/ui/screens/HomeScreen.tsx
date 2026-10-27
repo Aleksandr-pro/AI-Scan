@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -7,9 +7,22 @@ import {
   View,
 } from 'react-native';
 import { AnalysisResult, MediaKind } from '../../core/types';
-import { colors, radius, spacing, verdictTheme } from '../theme';
+import { colors, spacing, verdictTheme } from '../theme';
 import { fmtBytes, fmtDate } from '../format';
-import { Card, SectionTitle } from '../components/Card';
+import { SectionTitle } from '../components/Card';
+import {
+  IconArrowRight,
+  IconClock,
+  IconInfo,
+  IconPhoto,
+  IconPulse,
+  IconShield,
+  IconPhone,
+  IconUpload,
+  IconVideo,
+  IconAudio,
+  VerdictIcon,
+} from '../components/Icon';
 
 interface Props {
   history: AnalysisResult[];
@@ -19,14 +32,24 @@ interface Props {
   onOpenAbout: () => void;
 }
 
-const KINDS: Array<{ kind: MediaKind; title: string; sub: string; icon: string }> = [
-  { kind: 'photo', title: 'Фото', sub: 'JPG · PNG · WebP · HEIC', icon: '🖼️' },
-  { kind: 'video', title: 'Видео', sub: 'MP4 · MOV · MKV · WebM', icon: '🎬' },
-  { kind: 'audio', title: 'Аудио', sub: 'WAV · MP3 · M4A · FLAC', icon: '🎵' },
+const KINDS: Array<{ kind: MediaKind; title: string; sub: string; Icon: typeof IconPhoto }> = [
+  { kind: 'photo', title: 'Фото', sub: 'JPG · PNG · WebP · HEIC', Icon: IconPhoto },
+  { kind: 'video', title: 'Видео', sub: 'MP4 · MOV · MKV · WebM', Icon: IconVideo },
+  { kind: 'audio', title: 'Аудио', sub: 'WAV · MP3 · M4A · FLAC', Icon: IconAudio },
 ];
 
+const VERDICT_TAG: Record<AnalysisResult['verdict'], string> = {
+  AI: 'ИИ',
+  HUMAN: 'ЧЕЛ',
+  MIXED: 'СМЕШ',
+  UNCERTAIN: '?',
+};
+
 export function HomeScreen({ history, onPick, onOpenResult, onOpenHistory, onOpenAbout }: Props) {
+  const [kind, setKind] = useState<MediaKind>('photo');
   const recent = history.slice(0, 3);
+  const selected = KINDS.find(k => k.kind === kind) ?? KINDS[0];
+
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <View style={styles.header}>
@@ -36,79 +59,110 @@ export function HomeScreen({ history, onPick, onOpenResult, onOpenHistory, onOpe
         <Text style={styles.tagline}>Детектор ИИ-контента: фото · видео · аудио</Text>
       </View>
 
-      <Card>
-        <Text style={styles.cardTitle}>Загрузите материал для проверки</Text>
-        <Text style={styles.cardSub}>
-          Файл анализируется прямо на устройстве: метаданные, статистика шума, спектры и признаки генерации.
-        </Text>
-        <View style={styles.kindRow}>
-          {KINDS.map(k => (
-            <Pressable
-              key={k.kind}
-              onPress={() => onPick(k.kind)}
-              style={({ pressed }) => [styles.kindCard, pressed && styles.pressed]}
-            >
-              <Text style={styles.kindIcon}>{k.icon}</Text>
-              <Text style={styles.kindTitle}>{k.title}</Text>
-              <Text style={styles.kindSub}>{k.sub}</Text>
-            </Pressable>
-          ))}
+      {/* Единая зона загрузки: сегменты + центральное действие */}
+      <View style={styles.dropzone}>
+        <View style={styles.segment}>
+          {KINDS.map(k => {
+            const active = k.kind === kind;
+            return (
+              <Pressable
+                key={k.kind}
+                onPress={() => setKind(k.kind)}
+                style={({ pressed }) => [
+                  styles.segmentItem,
+                  active && styles.segmentItemActive,
+                  pressed && !active && styles.pressed,
+                ]}
+              >
+                <k.Icon size={15} color={active ? colors.text : colors.textFaint} strokeWidth={1.6} />
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                  {k.title}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
-        <Pressable
-          onPress={() => onPick('any')}
-          style={({ pressed }) => [styles.anyBtn, pressed && styles.pressed]}
-        >
-          <Text style={styles.anyBtnText}>Выбрать файл вручную →</Text>
-        </Pressable>
-      </Card>
 
+        <Pressable
+          onPress={() => onPick(kind)}
+          style={({ pressed }) => [styles.dropzoneAction, pressed && styles.pressed]}
+        >
+          <IconUpload size={38} color={colors.accent} strokeWidth={1.5} />
+          <Text style={styles.dropzoneTitle}>Выбрать файл</Text>
+          <Text style={styles.dropzoneHint}>Нажмите, чтобы открыть проводник</Text>
+        </Pressable>
+
+        <Text style={styles.dropzoneFormats}>{selected.sub}</Text>
+      </View>
+
+      {/* Основное действие второго уровня */}
+      <Pressable
+        onPress={() => onPick('any')}
+        style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
+      >
+        <Text style={styles.primaryBtnText}>Выбрать файл вручную</Text>
+        <IconArrowRight size={17} color="#062730" strokeWidth={2} />
+      </Pressable>
+
+      {/* Второстепенные переходы — без рамок, только воздух */}
       <View style={styles.linksRow}>
         <Pressable onPress={onOpenAbout} style={({ pressed }) => [styles.link, pressed && styles.pressed]}>
-          <Text style={styles.linkText}>🔬 Как работает анализ</Text>
+          <IconInfo size={16} color={colors.textFaint} />
+          <Text style={styles.linkText}>Как работает анализ</Text>
         </Pressable>
         <Pressable onPress={onOpenHistory} style={({ pressed }) => [styles.link, pressed && styles.pressed]}>
-          <Text style={styles.linkText}>🕘 История проверок</Text>
+          <IconClock size={16} color={colors.textFaint} />
+          <Text style={styles.linkText}>История проверок</Text>
         </Pressable>
       </View>
 
       {recent.length > 0 && (
         <View>
           <SectionTitle title="Последние проверки" hint="все →" />
-          {recent.map(r => {
-            const t = verdictTheme[r.verdict];
-            return (
-              <Pressable
-                key={r.id}
-                onPress={() => onOpenResult(r)}
-                style={({ pressed }) => [styles.histRow, { borderColor: t.border }, pressed && styles.pressed]}
-              >
-                <Text style={styles.histIcon}>{t.icon}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.histName} numberOfLines={1}>
-                    {r.tech.fileName}
+          <View style={styles.histList}>
+            {recent.map((r, idx) => {
+              const t = verdictTheme[r.verdict];
+              return (
+                <Pressable
+                  key={r.id}
+                  onPress={() => onOpenResult(r)}
+                  style={({ pressed }) => [
+                    styles.histRow,
+                    idx < recent.length - 1 && styles.histRowLine,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <VerdictIcon verdict={r.verdict} size={19} color={t.color} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.histName} numberOfLines={1}>
+                      {r.tech.fileName}
+                    </Text>
+                    <Text style={styles.histMeta} numberOfLines={1}>
+                      {fmtDate(r.createdAt)} · {fmtBytes(r.tech.fileSize)} · {r.confidence}%
+                    </Text>
+                  </View>
+                  <Text style={[styles.histTag, { color: t.color }]}>
+                    {VERDICT_TAG[r.verdict]}
                   </Text>
-                  <Text style={styles.histMeta} numberOfLines={1}>
-                    {fmtDate(r.createdAt)} · {fmtBytes(r.tech.fileSize)} · уверенность {r.confidence}%
-                  </Text>
-                </View>
-                <Text style={[styles.histVerdict, { color: t.color }]}>
-                  {r.verdict === 'AI' ? 'ИИ' : r.verdict === 'HUMAN' ? 'ЧЕЛ' : r.verdict === 'MIXED' ? 'СМЕШ' : '?'}
-                </Text>
-              </Pressable>
-            );
-          })}
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
       )}
 
-      <View style={styles.pillRow}>
-        <View style={styles.pill}>
-          <Text style={styles.pillText}>🔒 офлайн</Text>
+      <View style={styles.factsRow}>
+        <View style={styles.fact}>
+          <IconShield size={14} color={colors.textFaint} />
+          <Text style={styles.factText}>офлайн</Text>
         </View>
-        <View style={styles.pill}>
-          <Text style={styles.pillText}>📱 на устройстве</Text>
+        <View style={styles.fact}>
+          <IconPhone size={14} color={colors.textFaint} />
+          <Text style={styles.factText}>на устройстве</Text>
         </View>
-        <View style={styles.pill}>
-          <Text style={styles.pillText}>🧠 эвристика + спектры</Text>
+        <View style={styles.fact}>
+          <IconPulse size={14} color={colors.textFaint} />
+          <Text style={styles.factText}>эвристика + спектры</Text>
         </View>
       </View>
 
@@ -132,73 +186,115 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
   },
   logoAccent: { color: colors.accent },
-  tagline: { color: colors.textDim, fontSize: 14, marginTop: 4 },
-  cardTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  cardSub: { color: colors.textDim, fontSize: 13, lineHeight: 19, marginTop: 6 },
-  kindRow: { flexDirection: 'row', gap: spacing.s, marginTop: spacing.l },
-  kindCard: {
-    flex: 1,
+  tagline: { color: colors.textDim, fontSize: 13, marginTop: 5, fontWeight: '400' },
+
+  /* Зона загрузки */
+  dropzone: {
     backgroundColor: colors.bgElevated,
-    borderRadius: radius.l,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    paddingVertical: spacing.m,
-    paddingHorizontal: 6,
-    alignItems: 'center',
+    borderRadius: 22,
+    paddingHorizontal: spacing.m,
+    paddingTop: spacing.m,
+    paddingBottom: spacing.l,
   },
-  kindIcon: { fontSize: 30 },
-  kindTitle: { color: colors.text, fontWeight: '800', fontSize: 15, marginTop: 6 },
-  kindSub: { color: colors.textFaint, fontSize: 9.5, marginTop: 3, textAlign: 'center' },
-  pressed: { opacity: 0.65, transform: [{ scale: 0.985 }] },
-  anyBtn: {
-    marginTop: spacing.m,
-    backgroundColor: colors.accent + '1A',
-    borderRadius: radius.m,
-    borderWidth: 1,
-    borderColor: colors.accent + '66',
-    paddingVertical: spacing.m,
-    alignItems: 'center',
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: colors.bg,
+    borderRadius: 13,
+    padding: 3,
+    gap: 2,
   },
-  anyBtnText: { color: colors.accent, fontWeight: '700', fontSize: 14.5 },
-  linksRow: { flexDirection: 'row', gap: spacing.s, marginTop: spacing.s },
-  link: {
+  segmentItem: {
     flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radius.m,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    paddingVertical: spacing.m,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 11,
+  },
+  segmentItemActive: { backgroundColor: colors.card },
+  segmentText: { color: colors.textFaint, fontSize: 13, fontWeight: '600' },
+  segmentTextActive: { color: colors.text, fontWeight: '700' },
+  dropzoneAction: {
+    alignItems: 'center',
+    paddingVertical: 26,
+    gap: 6,
+  },
+  dropzoneTitle: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 6 },
+  dropzoneHint: { color: colors.textFaint, fontSize: 12.5 },
+  dropzoneFormats: {
+    color: colors.textFaint,
+    fontSize: 11.5,
+    textAlign: 'center',
+    letterSpacing: 0.4,
+    fontFamily: 'monospace',
+  },
+
+  /* Основная кнопка */
+  primaryBtn: {
+    marginTop: spacing.m,
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.l,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6,
+  },
+  primaryBtnText: { color: '#062730', fontSize: 15, fontWeight: '800' },
+
+  /* Ссылки */
+  linksRow: {
+    flexDirection: 'row',
+    gap: spacing.xl,
+    marginTop: spacing.l,
+    paddingLeft: 2,
+  },
+  link: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingVertical: 6,
   },
   linkText: { color: colors.textDim, fontSize: 13, fontWeight: '600' },
+
+  /* Последние проверки — чистый лист */
+  histList: { marginTop: 2 },
   histRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.m,
-    backgroundColor: colors.card,
-    borderRadius: radius.m,
-    borderWidth: 1,
-    padding: spacing.m,
-    marginBottom: spacing.s,
+    paddingVertical: 13,
   },
-  histIcon: { fontSize: 22 },
+  histRowLine: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.07)',
+  },
   histName: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  histMeta: { color: colors.textFaint, fontSize: 11.5, marginTop: 2 },
-  histVerdict: { fontSize: 13, fontWeight: '900', letterSpacing: 1 },
-  pillRow: { flexDirection: 'row', gap: spacing.s, marginTop: spacing.l, flexWrap: 'wrap' },
-  pill: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: colors.bgElevated,
+  histMeta: { color: colors.textFaint, fontSize: 11.5, marginTop: 3 },
+  histTag: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8 },
+
+  /* Факты вместо пилюль */
+  factsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.l,
+    marginTop: spacing.xl,
   },
-  pillText: { color: colors.textFaint, fontSize: 11.5 },
+  fact: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  factText: { color: colors.textFaint, fontSize: 11.5 },
+
   disclaimer: {
     color: colors.textFaint,
     fontSize: 12,
     lineHeight: 17,
     marginTop: spacing.l,
   },
+  pressed: { opacity: 0.7 },
 });

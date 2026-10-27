@@ -1,4 +1,5 @@
 /* ИИ или Нет? Для чайников — поведение страницы */
+/* global IntersectionObserver */
 (function () {
   'use strict';
 
