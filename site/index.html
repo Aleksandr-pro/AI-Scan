@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ИИ или Нет? Для чайников — как отличить настоящее от сгенерированного</title>
+  <meta name="description" content="Простой гайд: как отличить ИИ-фото, ИИ-видео и ИИ-текст от настоящих. Признаки, быстрые проверки и приложение AI Scan, которое проверяет файлы по всем критериям.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/fonts/fonts.css">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<header class="site-head" id="siteHead">
+  <div class="wrap head-in">
+    <a class="brand" href="#top"><span class="brand-dot" aria-hidden="true"></span>AI&nbsp;SCAN<span class="brand-tag mono">/ гайд</span></a>
+    <nav class="nav" id="nav" aria-label="Разделы">
+      <a href="#problem">Проблема</a>
+      <a href="#photo">Фото</a>
+      <a href="#video">Видео</a>
+      <a href="#text">Текст</a>
+      <a href="#app">Приложение</a>
+    </nav>
+    <a class="btn btn-small head-cta" href="#app">Скачать APK</a>
+    <button class="burger" id="burger" aria-label="Меню" aria-expanded="false">
+      <span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ОБЛОЖКА -->
+  <section class="cover">
+    <div class="wrap">
+      <div class="cover-meta mono reveal">
+        <span>Практический гайд</span>
+        <span class="cover-meta-dot" aria-hidden="true"></span>
+        <span>Без терминов</span>
+        <span class="cover-meta-dot" aria-hidden="true"></span>
+        <span>Октябрь 2026</span>
+      </div>
+      <h1 class="cover-title reveal">ИИ или Нет?<span class="cover-title-2">Для чайников</span></h1>
+      <div class="cover-grid">
+        <p class="deck reveal">Фото, видео, голос и текст больше нельзя считать доказательством чего-либо «на глаз». Вот простая инструкция: как на самом деле выглядит сгенерированный материал и как его поймать за пару минут.</p>
+        <ul class="cover-side mono reveal">
+          <li>Чтение ≈ 8 минут</li>
+          <li>Три разбора: фото · видео · текст</li>
+          <li>Проверки, которые делает приложение</li>
+        </ul>
+      </div>
+      <div class="cover-cta reveal">
+        <a class="btn" href="#problem">Начать разбор</a>
+        <a class="btn btn-ghost" href="#app">Как это делает приложение</a>
+      </div>
+    </div>
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-in mono">
+        <span>Midjourney&nbsp;· Sora&nbsp;· Suno&nbsp;· ElevenLabs&nbsp;· ChatGPT&nbsp;· Kling&nbsp;· Veo&nbsp;· Flux&nbsp;· Stable Diffusion&nbsp;· Runway&nbsp;· Gemini&nbsp;· дипфейки&nbsp;· клонирование голоса&nbsp;· </span>
+        <span>Midjourney&nbsp;· Sora&nbsp;· Suno&nbsp;· ElevenLabs&nbsp;· ChatGPT&nbsp;· Kling&nbsp;· Veo&nbsp;· Flux&nbsp;· Stable Diffusion&nbsp;· Runway&nbsp;· Gemini&nbsp;· дипфейки&nbsp;· клонирование голоса&nbsp;· </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 01 ПРОБЛЕМА -->
+  <section class="sec" id="problem">
+    <div class="wrap">
+      <div class="sec-kicker mono reveal"><span>01</span>Проблема</div>
+      <h2 class="reveal">Мир, в котором трудно отличить</h2>
+      <div class="cols-2 reveal">
+        <p>Ещё недавно фальшивку выдавали плавающие руки и пластиковая кожа. Сегодня генеративные модели делают картинки, видео и голос на уровне обычного фото с телефона — а тексты без автора читаешь, не задумываясь, кто их написал.</p>
+        <p>Проблема не в том, что обман не распознать. Проблема в том, что мы смотрим «на быстрину»: лента, голосовое, новость. За секунду глаз не уловит ничего — и тем не менее следы почти всегда остались.</p>
+        <p>Меняется и доверие: настоящее фото начинают называть фейком, а качественную генерацию — доказательством. Отсюда простой вывод: уметь отличать — уже базовая грамотность, а не специальность фотографа.</p>
+        <p>Хорошая новость ровно одна: у генерации есть следы производства. У живой записи — свои. Их можно выучить, как таблицу умножения: один вечер — и вы перестанете верить картинке на слово.</p>
+      </div>
+
+      <div class="threats reveal">
+        <div class="threats-head mono">Где подмена встречается чаще всего</div>
+        <ol class="ruled">
+          <li><span class="ruled-n mono">а)</span><span class="ruled-t">Картинки в лентах новостей и рекламе</span><span class="ruled-x mono">соцсети, агрегаторы, маркетплейсы</span></li>
+          <li><span class="ruled-n mono">б)</span><span class="ruled-t">Голосовые «от родственника» и звонки с просьбой перевести деньги</span><span class="ruled-x mono">дипфейк-голос</span></li>
+          <li><span class="ruled-n mono">в)</span><span class="ruled-t">Видео-обращения и «горячие новости» без источника</span><span class="ruled-x mono">сгенерированные ролики</span></li>
+          <li><span class="ruled-n mono">г)</span><span class="ruled-t">Тексты-статьи без имени автора и без проверяемых фактов</span><span class="ruled-x mono">LLM-публикации</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ПРИЗЫВ: УЧИМСЯ -->
+  <section class="sec statement" id="learn">
+    <div class="wrap">
+      <p class="statement-p reveal">Учимся отличать: у ИИ <b>есть повторяющиеся следы</b>. Дальше — три разбора: сначала фото, потом видео, потом текст.</p>
+      <div class="rule-box reveal">
+        <div class="rule-label mono">Общий закон</div>
+        <p><b>Один признак ничего не доказывает.</b> Три-четыре совпавших — уже аргумент. Сначала смотрим на совокупность, потом на детали: именно так работает и приложение в конце гайда.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 ФОТО -->
+  <section class="sec signs" id="photo">
+    <div class="wrap">
+      <div class="sec-kicker mono reveal"><span>02</span>Разбор · фото</div>
+      <h2 class="reveal">Признаки ИИ в фото</h2>
+      <p class="sec-lead reveal">Снимок отличают не по одной накладке, а по следам «производства». Генератор оставляет их на каждом этапе — от свойств файла до пикселей.</p>
+
+      <ol class="sign-list">
+        <li class="sign reveal">
+          <div class="sign-n mono">01</div>
+          <div class="sign-body">
+            <h3>Метаданные не сходятся</h3>
+            <p>В файле есть EXIF, но нет следов камеры. Или в поле <i>Software</i> светится имя генератора — Midjourney, Stable Diffusion, DALL·E. Иногда наоборот: у «фото с телефона» описание пустое как у картинки, нарисованной в один клик.</p>
+            <div class="sign-check mono">Как проверить: свойства файла → EXIF / приложение для метаданных</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">02</div>
+          <div class="sign-body">
+            <h3>Слишком «правильные» размеры</h3>
+            <p>512×512, 1024×1024, 1792×1024, кратность 64 пикселям — это «родные» числа генераторов. У камер разрешения другие: они кратны сенсору и оптике, а не круглым числам из инструкции нейросети.</p>
+            <div class="sign-check mono">Как проверить: ширина × высота в свойствах файла</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">03</div>
+          <div class="sign-body">
+            <h3>Нет настоящего зерна</h3>
+            <p>Любой сенсор даже в самых тёмных тенях несёт случайный шум — это физика. У генерации поверхности стерильные, либо «шум» выглядит одинаково по всему кадру и не зависит от яркости.</p>
+            <div class="sign-check mono">Как проверить: увеличить тёмную зону на 400% и сравнить с настоящим снимком</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">04</div>
+          <div class="sign-body">
+            <h3>Свет и тени спорят друг с другом</h3>
+            <p>Лампа слева, а тень падает в обе стороны. Блик в стекле не повторяет объект, тень от стула заканчивается там, где ей нельзя. Модель рисует «правдоподобно», но не считает оптику.</p>
+            <div class="sign-check mono">Как проверить: провести взглядом от источника света к тени и обратно</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">05</div>
+          <div class="sign-body">
+            <h3>Мелочи крошатся</h3>
+            <p>Пальцы лишние или сросшиеся, уши и зубы «плывут», текст на вывесках похож на иерогливы, решётка забора меняет рисунок. При увеличении — каша и неожиданные повторы.</p>
+            <div class="sign-check mono">Как проверить: зум 300–400%, пройти взглядом по краям и лицам</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">06</div>
+          <div class="sign-body">
+            <h3>Кожа и глаза как у куклы</h3>
+            <p>Нет пор и морщинок-мелочей, волосы слипаются в единые потоки, блик в зрачке одинаков в обоих глазах или вообще отсутствует. Ресницы выглядят «нарисованным забором».</p>
+            <div class="sign-check mono">Как проверить: увеличить лицо, посмотреть на зрачки, линию ресниц и уши</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">07</div>
+          <div class="sign-body">
+            <h3>Идеальная композиция «на автомате»</h3>
+            <p>Объект ровно по центру, фон — аккуратная подложка, ни одной случайной помехи, ни одного лишнего пикселя. Настоящий кадр с рук всегда несёт в кадре что-то лишнее и неловкое.</p>
+            <div class="sign-check mono">Как проверить: сравнить с тем, как выглядит снимок, сделанный на ходу</div>
+          </div>
+        </li>
+      </ol>
+
+      <aside class="quickbox reveal">
+        <div class="quickbox-label mono">Быстрая проверка за 10 секунд</div>
+        <ol>
+          <li>Открыть свойства файла и взглянуть на EXIF.</li>
+          <li>Увеличить тёмную зону на 400% — есть ли зерно.</li>
+          <li>Пройтись взглядом по свету, теням и мелким деталям.</li>
+        </ol>
+        <p class="quickbox-out">Если «горят» два-три пункта — кадр под вопросом, даже если он выглядит идеально.</p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 03 ВИДЕО -->
+  <section class="sec signs alt" id="video">
+    <div class="wrap">
+      <div class="sec-kicker mono reveal"><span>03</span>Разбор · видео</div>
+      <h2 class="reveal">Признаки ИИ в видео</h2>
+      <p class="sec-lead reveal">Видео сложнее картинки, поэтому и следов больше: движение выдаёт генерацию там, где статичный кадр ещё может пройти.</p>
+
+      <ol class="sign-list">
+        <li class="sign reveal">
+          <div class="sign-n mono">01</div>
+          <div class="sign-body">
+            <h3>Подпись контейнера</h3>
+            <p>Файл собран программно: служебные строки Lavf/FFmpeg вместо отметки устройства. У роликов генераторов встречаются свои метки и бренды контейнера.</p>
+            <div class="sign-check mono">Как проверить: свойства файла, приложения для чтения метаданных</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">02</div>
+          <div class="sign-body">
+            <h3>Фон «дышит»</h3>
+            <p>Текстура стены, травы или волос меняется из кадра в кадр, будто рисунок пересоздают заново. У настоящей съёмки фон стабилен: он один и тот же, просто попадает в разные пиксели.</p>
+            <div class="sign-check mono">Как проверить: поставить на паузу и пролистать соседние кадры вбок</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">03</div>
+          <div class="sign-body">
+            <h3>Зерно мерцает</h3>
+            <p>Камера пишет шум последовательно, а у генерации зерно пропадает в одних областях и появляется в других — или меняется целиком каждый кадр.</p>
+            <div class="sign-check mono">Как проверить: следить за одним участком фона в соседних кадрах</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">04</div>
+          <div class="sign-body">
+            <h3>Лица и конечности «плывут»</h3>
+            <p>В движении уши, зубы, очки и пальцы меняют форму. Губы расходятся со звуком на полсекунды. Волосы у границы головы переливаются, как вода.</p>
+            <div class="sign-check mono">Как проверить: замедлить ролик и смотреть на руки, зубы и синхрон рта</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">05</div>
+          <div class="sign-body">
+            <h3>Отражения и тени отстают</h3>
+            <p>В стекле и воде отражение не повторяет движение, тень держится под неподвижным углом или «запаздывает». Модель рисует отражение как отдельную картинку, а не как физику.</p>
+            <div class="sign-check mono">Как проверить: сравнить объект и его отражение на паузе</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">06</div>
+          <div class="sign-body">
+            <h3>Резкость «как из коллажа»</h3>
+            <p>Объект идеально отрезан от фона, размытие движения не похоже на работу затвора, край предмета подозрительно ровный в момент, когда он должен быть смазан.</p>
+            <div class="sign-check mono">Как проверить: провести пальцем по краю объекта в кадре с движением</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">07</div>
+          <div class="sign-body">
+            <h3>Звук подозрительно чистый</h3>
+            <p>Нет шума улицы и зала, высокие частоты ровные как у синтезатора, голос звучит без дыхания. Или наоборот: фон заморожен и не меняется всю минуту.</p>
+            <div class="sign-check mono">Как проверить: выключить картинку и послушать только фон</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">08</div>
+          <div class="sign-body">
+            <h3>Пакетная длительность</h3>
+            <p>Ровно 10, 15, 20, 30 или 60 секунд — так «выдают» генераторы и конвертеры. Монтаж и съёмка дают произвольные цифры: 12,7 с, 47,3 с.</p>
+            <div class="sign-check mono">Как проверить: посмотреть длительность в свойствах файла</div>
+          </div>
+        </li>
+      </ol>
+
+      <aside class="quickbox reveal">
+        <div class="quickbox-label mono">Как ведёт себя настоящее видео</div>
+        <p>Телефон пишет с характерной цифровой стабилизацией, шумом комнаты и ненужными деталями: случайный палец в кадре, мимо идущий, кривоватый горизонт. Генерация такие «ошибки» почти никогда не допускает — и этим выдаёт себя.</p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 04 ТЕКСТ -->
+  <section class="sec signs" id="text">
+    <div class="wrap">
+      <div class="sec-kicker mono reveal"><span>04</span>Разбор · текст</div>
+      <h2 class="reveal">Признаки ИИ в тексте</h2>
+      <p class="sec-lead reveal">Текст от ИИ невозможно «поймать» на ошибках — их там нет. Зато есть характерная манера: слишком ровная, слишком вежливая, слишком одинаковая.</p>
+
+      <ol class="sign-list">
+        <li class="sign reveal">
+          <div class="sign-n mono">01</div>
+          <div class="sign-body">
+            <h3>Фирменные штампы</h3>
+            <p>«В мире, где…», «Давайте рассмотрим», «В заключение стоит отметить», «играют важную роль», «стоит подчеркнуть», «в современном обществе». Эти связки пишутся сами собой — модель не умеет иначе.</p>
+            <div class="sign-check mono">Как проверить: прочитать первое предложение вслух — звучит как конспект?</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">02</div>
+          <div class="sign-body">
+            <h3>Идеальная структура</h3>
+            <p>Вступление, пункты, вывод — всегда. Абзацы одинаковой длины, буллиты выровнены, ни одной правки на ходу. Живой человек пишет рывками: сначала главное, потом вступление, потом забытое уточнение.</p>
+            <div class="sign-check mono">Как проверить: оценить ритм абзацев и место, где автор «вспомнил» главное</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">03</div>
+          <div class="sign-body">
+            <h3>Ни одной живой детали</h3>
+            <p>Ни даты из личного опыта, ни имени, ни случая из жизни, ни бытовой оговорки. Всё «про всех» и ни про кого конкретно.</p>
+            <div class="sign-check mono">Как проверить: попросить конкретный пример из практики автора</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">04</div>
+          <div class="sign-body">
+            <h3>Вода вместо ответа</h3>
+            <p>Много слов, а по существу — в последних двух строках. Одна мысль повторяется тремя синонимами. Выкиньте половину предложений — смысл не изменится.</p>
+            <div class="sign-check mono">Как проверить: выделить предложения, которые можно удалить без потери смысла</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">05</div>
+          <div class="sign-body">
+            <h3>Всегда одинаковый тон</h3>
+            <p>Ровная вежливость от первой строки до последней: ни эмоций, ни иронии, ни оговорок, ни коротких рубленых фраз. У живого текста длина предложений «дышит».</p>
+            <div class="sign-check mono">Как проверить: сравнить с тем, как тот же человек пишет в чате</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">06</div>
+          <div class="sign-body">
+            <h3>Источники «ниоткуда»</h3>
+            <p>Цифры без ссылок, цитаты, которых не существует, ссылки, которые не открываются, исследования «по данным экспертов». Модель уверенно сочиняет то, что должна была процитировать.</p>
+            <div class="sign-check mono">Как проверить: открыть источник двумя кликами — если открывается вообще</div>
+          </div>
+        </li>
+        <li class="sign reveal">
+          <div class="sign-n mono">07</div>
+          <div class="sign-body">
+            <h3>Список на всё</h3>
+            <p>«5 шагов», «3 совета», «7 причин» — на любую тему, даже там, где нужен сплошной рассказ. Структура важнее содержания — самый заметный след модели.</p>
+            <div class="sign-check mono">Как проверить: заметить, сохраняется ли шаблон подачи от абзаца к абзацу</div>
+          </div>
+        </li>
+      </ol>
+
+      <aside class="quickbox reveal">
+        <div class="quickbox-label mono">Самый быстрый тест</div>
+        <p>Попросите уточнить мелочь: дату, деталь, ошибку в собственном тексте. Живой человек поправится и уточнит — модель начнёт «сглаживать» и пересказывать то же самое другими словами.</p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 05 ПРИЛОЖЕНИЕ -->
+  <section class="sec dark" id="app">
+    <div class="wrap">
+      <div class="sec-kicker mono reveal"><span>05</span>Наша технология</div>
+      <h2 class="reveal">AI Scan: та же проверка,<br>только по десяткам критериев</h2>
+      <p class="sec-lead reveal">Приложение делает то, что вы делаете глазами, — но глубже и сразу по всем направлениям: метаданные и контейнер, статистика шума, спектры (2D-Фурье), кадры, звуковая дорожка. И объясняет каждый признак словами.</p>
+
+      <div class="pipe reveal">
+        <div class="pipe-step">
+          <div class="pipe-t mono">Файл</div>
+          <div class="pipe-d">Чтение и валидация: формат, размер, тип</div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-t mono">Метаданные</div>
+          <div class="pipe-d">EXIF, XMP, ID3, служебные строки контейнера, подписи генераторов</div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-t mono">Пиксели · шум · спектры</div>
+          <div class="pipe-d">Зерно, периодические артефакты, края, частотный анализ кадра и звука</div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-t mono">Вердикт</div>
+          <div class="pipe-d">Признаки взвешиваются: сильные доказательства дороже косвенных</div>
+        </div>
+      </div>
+
+      <table class="verdicts reveal">
+        <caption class="mono">Четыре вердикта приложения</caption>
+        <tbody>
+          <tr>
+            <td><span class="vd" style="--c:#F472B6">AI</span></td>
+            <td><b>Создано или обработано ИИ</b> — перевес признаков генерации</td>
+          </tr>
+          <tr>
+            <td><span class="vd" style="--c:#4ADE80">HUMAN</span></td>
+            <td><b>Создано человеком</b> — признаки живой съёмки и записи, ИИ не найден</td>
+          </tr>
+          <tr>
+            <td><span class="vd" style="--c:#FBBF24">MIXED</span></td>
+            <td><b>Смешано</b> — снимок человека, обработанный нейросетью</td>
+          </tr>
+          <tr>
+            <td><span class="vd" style="--c:#94A3B8">UNCERTAIN</span></td>
+            <td><b>Недостаточно данных</b> — сигналы слабы или спорят друг с другом</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- СЛАЙДЫ: ПРЕЗЕНТАЦИЯ -->
+      <div class="slides reveal" id="slides">
+        <div class="slides-head">
+          <div class="mono slides-kicker">Презентация приложения · <span id="slideCounter">1 / 4</span></div>
+          <div class="slides-ctrl">
+            <button class="sbtn" id="prevSlide" aria-label="Предыдущий слайд">←</button>
+            <button class="sbtn" id="nextSlide" aria-label="Следующий слайд">→</button>
+          </div>
+        </div>
+
+        <div class="slides-viewport">
+          <div class="slides-track" id="slidesTrack">
+            <article class="slide">
+              <div class="slide-cap">
+                <div class="slide-n mono">Слайд 01</div>
+                <h3>Главный экран</h3>
+                <p>Три формата и один принцип: файл остаётся на устройстве, анализ тоже. Отсюда начинается путь из этого гайда — берём настоящий или сгенерированный материал и отправляем на проверку.</p>
+                <div class="slide-tags mono">офлайн · без загрузки в сеть</div>
+              </div>
+              <div class="slide-phone">
+                <div class="phone">
+                  <img src="assets/screens/home.png" alt="Главный экран приложения AI Scan: выбор фото, видео или аудио" width="390" height="844" loading="lazy">
+                </div>
+              </div>
+            </article>
+
+            <article class="slide">
+              <div class="slide-cap">
+                <div class="slide-n mono">Слайд 02</div>
+                <h3>Анализ по этапам</h3>
+                <p>Метаданные, шум и спектр проверяются по очереди — как ваш взгляд в этом гайде, только глубже. Каждый этап в списке выше — отдельная группа признаков: EXIF, зерно, частоты.</p>
+                <div class="slide-tags mono">EXIF · шум · 2D-Фурье · DSP</div>
+              </div>
+              <div class="slide-phone">
+                <div class="phone">
+                  <img src="assets/screens/analyzing.png" alt="Экран анализа: прогресс по этапам — файл, метаданные, DSP, вердикт" width="390" height="844" loading="lazy">
+                </div>
+              </div>
+            </article>
+
+            <article class="slide">
+              <div class="slide-cap">
+                <div class="slide-n mono">Слайд 03</div>
+                <h3>Вердикт с объяснением</h3>
+                <p>Не просто «ИИ», а процент уверенности и список признаков с весами: почему именно так. Ровно те критерии, что разобраны выше, только посчитанные числом — +45 за подпись генератора, +14 за ровное зерно.</p>
+                <div class="slide-tags mono">AI · уверенность 87% · веса признаков</div>
+              </div>
+              <div class="slide-phone">
+                <div class="phone">
+                  <img src="assets/screens/result.png" alt="Экран результата: вердикт «Создано или обработано ИИ», 87% уверенности, список признаков" width="390" height="844" loading="lazy">
+                </div>
+              </div>
+            </article>
+
+            <article class="slide">
+              <div class="slide-cap">
+                <div class="slide-n mono">Слайд 04</div>
+                <h3>Методика целиком</h3>
+                <p>Шесть групп проверок и правило вероятностной оценки — всё внутри приложения и на том же языке, что и этот гайд. Читается за пару минут, применяется потом всегда.</p>
+                <div class="slide-tags mono">метаданные · шум · спектр · структура · аудио · видео</div>
+              </div>
+              <div class="slide-phone">
+                <div class="phone">
+                  <img src="assets/screens/about.png" alt="Экран «Как работает анализ»: описание методик приложения" width="390" height="844" loading="lazy">
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div class="slides-dots" id="slidesDots" role="tablist" aria-label="Слайды"></div>
+      </div>
+
+      <div class="download reveal" id="download">
+        <div class="download-info">
+          <div class="download-title">Проверяйте так же — на своём телефоне</div>
+          <div class="download-meta mono">AI Scan v1.1.1 · Android · ≈ 24 МБ · работает офлайн</div>
+        </div>
+        <div class="download-actions">
+          <a class="btn btn-accent" href="https://github.com/Aleksandr-pro/AI-Scan/releases/download/apk-latest/AI-Scan-latest.apk">Скачать APK</a>
+          <a class="btn btn-ghost-dark" href="https://github.com/Aleksandr-pro/AI-Scan" target="_blank" rel="noopener">Исходники на GitHub</a>
+        </div>
+      </div>
+
+      <p class="dark-note mono reveal">Оценка вероятностная, а не судебная экспертиза: сильные фильтры и ручная ретушь могут запутать любую автоматическую проверку. Файлы не покидают устройство.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap foot-in">
+    <div class="foot-brand">
+      <div class="brand"><span class="brand-dot" aria-hidden="true"></span>AI&nbsp;SCAN<span class="brand-tag mono">/ гайд</span></div>
+      <p>Как отличить ИИ от настоящего — простыми словами, с проверками, которые можно сделать прямо сейчас.</p>
+    </div>
+    <div class="foot-links mono">
+      <a href="#problem">Проблема</a>
+      <a href="#photo">Фото</a>
+      <a href="#video">Видео</a>
+      <a href="#text">Текст</a>
+      <a href="#app">Приложение</a>
+      <a href="https://github.com/Aleksandr-pro/AI-Scan/releases" target="_blank" rel="noopener">Релизы</a>
+    </div>
+    <div class="foot-legal mono">
+      <span>© 2026 AI Scan</span>
+      <span>Материал носит образовательный характер</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/main.js"></script>
+</body>
+</html>
