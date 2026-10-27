@@ -277,7 +277,15 @@ img { display: block; max-width: 100%; height: auto; }
   border-bottom: 1px solid var(--line);
 }
 .ruled-n { color: var(--accent); font-size: 14px; }
-.ruled-t { font-weight: 500; }
+.ruled-main { min-width: 0; }
+.ruled-t { font-weight: 600; display: block; }
+.ruled-d {
+  margin: 8px 0 0;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+  max-width: 76ch;
+}
 .ruled-x { font-size: 12.5px; color: var(--ink-dim); text-align: right; }
 
 /* ---------- Блок-закон ---------- */
@@ -334,6 +342,14 @@ img { display: block; max-width: 100%; height: auto; }
 }
 .sign-body p { margin: 0; color: var(--ink-soft); max-width: 68ch; }
 .sign-body i { font-style: italic; }
+.sign-ex {
+  margin-top: 12px !important;
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+  color: var(--ink-dim) !important;
+  font-size: 15.5px;
+}
+.sign-ex::first-letter { font-weight: 600; color: var(--ink); }
 .sign-check {
   margin-top: 14px;
   font-size: 13px;
@@ -360,8 +376,10 @@ img { display: block; max-width: 100%; height: auto; }
   padding-left: 22px;
   font-size: clamp(17px, 1.6vw, 19px);
 }
-.quickbox li { margin-bottom: 8px; }
+.quickbox li { margin-bottom: 10px; }
 .quickbox li::marker { font-family: var(--f-mono); color: var(--accent); font-weight: 600; }
+.quickbox li b { font-weight: 600; color: var(--ink); }
+.quickbox-intro { margin: 0 0 14px; color: var(--ink-soft); }
 .quickbox p { margin: 14px 0 0; color: var(--ink-soft); }
 .quickbox-out { font-weight: 500; color: var(--ink) !important; }
 
@@ -482,7 +500,8 @@ img { display: block; max-width: 100%; height: auto; }
   color: #fff;
   margin: 0 0 16px;
 }
-.slide-cap p { font-size: clamp(16px, 1.5vw, 18.5px); line-height: 1.6; color: #B9BEC6; margin: 0 0 20px; max-width: 54ch; }
+.slide-cap p { font-size: clamp(16px, 1.5vw, 18.5px); line-height: 1.6; color: #B9BEC6; margin: 0 0 16px; max-width: 54ch; }
+.slide-cap .slide-p2 { margin-bottom: 20px; color: #9BA2AC; }
 .slide-tags {
   font-size: 12.5px;
   text-transform: uppercase;
@@ -542,6 +561,13 @@ img { display: block; max-width: 100%; height: auto; }
   margin-bottom: 8px;
 }
 .download-meta { font-size: 13px; color: #8A9099; text-transform: uppercase; }
+.download-p {
+  margin: 14px 0 0;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: #AEB4BD;
+  max-width: 62ch;
+}
 .download-actions { display: flex; flex-wrap: wrap; gap: 14px; }
 .dark-note {
   font-size: 13px;
