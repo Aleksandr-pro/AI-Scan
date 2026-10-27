@@ -55,8 +55,24 @@ jobs:
           ls -d "$NDK_DIR"
 
       - name: Сборка release APK
-        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
-        working-directory: android
+        run: |
+          set -o pipefail
+          cd android
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a 2>&1 | tee "$RUNNER_TEMP/gradle.log"
+
+      - name: Диагностика ошибки сборки
+        if: failure()
+        run: |
+          LOG="$RUNNER_TEMP/gradle.log"
+          if [ ! -f "$LOG" ]; then echo "::error::Лог gradle не найден"; exit 0; fi
+          {
+            echo "### ❌ Ошибка Gradle"
+            echo '```'
+            grep -B2 -A25 -E "FAILURE:|What went wrong|error:|^e: |Execution failed|Could not resolve" "$LOG" | tail -150 || tail -60 "$LOG"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep -B2 -A15 -E "FAILURE:|What went wrong|^e: |Execution failed|Could not resolve" "$LOG" \
+            | head -c 12000 | sed 's/^/::error title=Gradle::/' | head -40 || true
 
       - name: Артефакты и версия
         id: meta
