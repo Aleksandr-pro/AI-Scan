@@ -15,10 +15,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -36,17 +36,23 @@ jobs:
         run: npx eslint . --quiet
 
       - name: Setup Java (Temurin 17)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Проверка NDK
         run: |
+          set -e
           NDK_DIR="${ANDROID_HOME}/ndk/26.1.10909125"
           if [ ! -d "$NDK_DIR" ]; then
-            yes | sdkmanager "ndk;26.1.10909125"
+            SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+            if [ ! -x "$SDKMANAGER" ]; then
+              SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -name sdkmanager -type f | head -1)"
+            fi
+            yes | "$SDKMANAGER" --sdk_root="${ANDROID_HOME}" "ndk;26.1.10909125"
           fi
+          ls -d "$NDK_DIR"
 
       - name: Сборка release APK
         run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
