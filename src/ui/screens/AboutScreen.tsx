@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing } from '../theme';
+import pkg from '../../../package.json';
 import { Card, SectionTitle } from '../components/Card';
 
 interface Props {
@@ -113,7 +114,7 @@ export function AboutScreen({ onBack }: Props) {
         </Text>
       </Card>
 
-      <Text style={styles.version}>AI Scan · версия 1.0.0</Text>
+      <Text style={styles.version}>AI Scan · версия {pkg.version}</Text>
       <View style={{ height: 40 }} />
     </ScrollView>
   );

@@ -16,6 +16,7 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.WritableMap
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.util.concurrent.Executors
@@ -687,6 +688,36 @@ class NativeMediaModule(private val reactContext: ReactApplicationContext) :
         promise.resolve(decodeAudioInternal(path, maxSeconds))
       } catch (t: Throwable) {
         promise.reject("EAUDIO", t.message ?: "не удалось декодировать аудио", t)
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------ copy
+
+  /**
+   * Копирует content:// URI (выбор файла) в обычный локальный файл.
+   * Возвращает размер в байтах.
+   */
+  @ReactMethod
+  fun copyFromContent(contentUri: String, destPath: String, promise: Promise) {
+    executor.execute {
+      try {
+        val uri = android.net.Uri.parse(contentUri)
+        if (uri.scheme != "content" && uri.scheme != "file") {
+          throw IllegalArgumentException("неподдерживаемая схема: ${uri.scheme}")
+        }
+        val input = reactContext.contentResolver.openInputStream(uri)
+          ?: throw IllegalStateException("не удалось открыть $contentUri")
+        val dest = File(destPath)
+        dest.parentFile?.mkdirs()
+        input.use { ins ->
+          FileOutputStream(dest).use { outs ->
+            ins.copyTo(outs)
+          }
+        }
+        promise.resolve(dest.length().toDouble())
+      } catch (t: Throwable) {
+        promise.reject("ECOPY", t.message ?: "не удалось скопировать файл", t)
       }
     }
   }

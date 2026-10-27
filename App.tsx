@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import DocumentPicker from 'react-native-document-picker';
+import RNFS from 'react-native-fs';
 
 import { HomeScreen } from './src/ui/screens/HomeScreen';
 import { AnalyzingScreen } from './src/ui/screens/AnalyzingScreen';
@@ -15,7 +16,7 @@ import { ResultScreen } from './src/ui/screens/ResultScreen';
 import { HistoryScreen } from './src/ui/screens/HistoryScreen';
 import { AboutScreen } from './src/ui/screens/AboutScreen';
 
-import { runAnalysis } from './src/core/pipeline';
+import { runAnalysis, resolveLocalPath, safeDecodeName } from './src/core/pipeline';
 import { AnalysisProgress, AnalysisResult, MediaKind } from './src/core/types';
 import { clearHistory, loadHistory, removeResult, saveResult } from './src/storage/history';
 import { colors } from './src/ui/theme';
@@ -35,6 +36,7 @@ export default function App() {
   const [current, setCurrent] = useState<AnalysisResult | null>(null);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [pendingName, setPendingName] = useState('');
+  const [pendingMime, setPendingMime] = useState<string | null>(null);
   const [progress, setProgress] = useState<AnalysisProgress | null>(null);
   const [error, setError] = useState<string | undefined>(undefined);
   const cancelled = useRef(false);
@@ -49,14 +51,47 @@ export default function App() {
         type: MIME_BY_KIND[kind],
         copyTo: 'cachesDirectory',
       });
-      const path = res.fileCopyUri || res.uri;
-      if (!path) {
-        Alert.alert('Не удалось открыть файл', 'Попробуйте выбрать файл заново.');
+      const raw = res.fileCopyUri || res.uri;
+      if (!raw) {
+        Alert.alert('Не удалось открыть файл', res.copyError || 'Попробуйте выбрать файл заново.');
         return;
       }
+
+      // Пикер возвращает file:// или content:// URI — приводим к реальному пути.
+      let path: string;
+      try {
+        path = await resolveLocalPath(raw, res.name || undefined);
+      } catch (e: any) {
+        Alert.alert(
+          'Не удалось подготовить файл',
+          res.copyError || String(e?.message ?? e),
+        );
+        return;
+      }
+
+      const exists = await RNFS.exists(path).catch(() => false);
+      let size = 0;
+      try {
+        size = Number((await RNFS.stat(path)).size);
+      } catch {
+        size = 0;
+      }
+      if (!exists || size <= 0) {
+        Alert.alert(
+          'Файл недоступен',
+          res.copyError || 'Не удалось получить содержимое выбранного файла. Попробуйте ещё раз.',
+        );
+        return;
+      }
+
+      const display = res.name
+        ? safeDecodeName(res.name)
+        : path.split('/').pop() || 'файл';
+
       cancelled.current = false;
       setPendingPath(path);
-      setPendingName(res.name || path.split('/').pop() || 'файл');
+      setPendingName(display);
+      setPendingMime(res.type ?? null);
       setProgress({ stage: 'Чтение файла', progress: 0.02 });
       setError(undefined);
       setScreen('analyzing');
@@ -72,11 +107,15 @@ export default function App() {
     let alive = true;
     (async () => {
       try {
-        const result = await runAnalysis(pendingPath, p => {
-          if (alive && !cancelled.current) {
-            setProgress(p);
-          }
-        });
+        const result = await runAnalysis(
+          pendingPath,
+          p => {
+            if (alive && !cancelled.current) {
+              setProgress(p);
+            }
+          },
+          { mime: pendingMime },
+        );
         if (!alive || cancelled.current) { return; }
         setCurrent(result);
         setHistory(prev => [result, ...prev].slice(0, 50));
@@ -91,7 +130,7 @@ export default function App() {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, pendingPath]);
+  }, [screen, pendingPath, pendingMime]);
 
   const goHome = useCallback(() => {
     cancelled.current = true;

@@ -26,13 +26,63 @@ const IMAGE_EXT = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'bmp'];
 const VIDEO_EXT = ['mp4', 'mov', 'mkv', 'webm', 'avi', '3gp', 'm4v', 'ts', 'mpg', 'mpeg'];
 const AUDIO_EXT = ['wav', 'mp3', 'm4a', 'aac', 'ogg', 'oga', 'flac', 'opus', 'amr', 'm4b', 'aiff', 'wma'];
 
-export function detectKind(path: string): MediaKind {
-  const ext = (path.split('.').pop() || '').toLowerCase();
+export function detectKind(path: string, mime?: string | null): MediaKind {
+  const clean = path.split('?')[0];
+  const ext = (clean.split('.').pop() || '').toLowerCase();
   if (IMAGE_EXT.includes(ext)) { return 'photo'; }
   if (VIDEO_EXT.includes(ext)) { return 'video'; }
   if (AUDIO_EXT.includes(ext)) { return 'audio'; }
-  // Фallback: по расширению нельзя — считаем изображением (самый частый кейс).
+  // Если расширение неизвестно — используем MIME из пикера.
+  if (mime) {
+    if (mime.startsWith('image/')) { return 'photo'; }
+    if (mime.startsWith('video/')) { return 'video'; }
+    if (mime.startsWith('audio/')) { return 'audio'; }
+  }
+  // Фallback: считаем изображением (самый частый кейс).
   return 'photo';
+}
+
+/**
+ * Приводит URI из пикера (file:///…, content://…) к локальному пути.
+ *  - file:// → обычный путь с раскодированными %XX-последовательностями;
+ *  - content:// → копия через нативный ContentResolver в кеш приложения.
+ */
+export function plainPathFromUri(uri: string): string {
+  if (!uri) { return uri; }
+  if (uri.startsWith('file://')) {
+    let p = uri.slice('file://'.length);
+    try {
+      p = decodeURIComponent(p);
+    } catch {
+      // в имени были литеральные '%' — оставляем как есть
+    }
+    return p;
+  }
+  return uri;
+}
+
+export async function resolveLocalPath(raw: string, suggestedName?: string): Promise<string> {
+  if (raw.startsWith('content://')) {
+    if (!NativeMedia) {
+      throw new Error('Нет доступа к файлу: нативный модуль не инициализирован');
+    }
+    const safe = (suggestedName || 'picked_file')
+      .replace(/[\\/:*?"<>|]/g, '_')
+      .slice(-80);
+    const dest = `${RNFS.CachesDirectoryPath}/picked_${Date.now()}_${safe}`;
+    await NativeMedia.copyFromContent(raw, dest);
+    return dest;
+  }
+  return plainPathFromUri(raw);
+}
+
+/** Безопасно раскодирует имя файла (может прийти URL-encoded). */
+export function safeDecodeName(name: string): string {
+  try {
+    return decodeURIComponent(name);
+  } catch {
+    return name;
+  }
 }
 
 function yieldToUi(): Promise<void> {
@@ -254,19 +304,31 @@ async function analyzeAudioFile(
 export async function runAnalysis(
   path: string,
   onProgress?: ProgressFn,
+  options?: { mime?: string | null },
 ): Promise<AnalysisResult> {
-  const kind = detectKind(path);
-  const { size } = await fileInfo(path);
+  const kind = detectKind(path, options?.mime);
   const warnings: string[] = [];
   const stages: string[] = [];
+
+  await progress(onProgress, 'Чтение файла', 0.08);
+  stages.push('Чтение файла');
+
+  // Валидация: файл должен существовать и быть не пустым.
+  const pathExists = await RNFS.exists(path).catch(() => false);
+  if (!pathExists) {
+    throw new Error('Файл не найден — временная копия недоступна. Выберите файл заново.');
+  }
+  const { size } = await fileInfo(path);
+  if (size <= 0) {
+    throw new Error('Файл пуст (0 байт) — не удалось получить доступ к содержимому. Выберите файл заново.');
+  }
+
   const tech: TechInfo = {
-    fileName: fileNameOf(path),
+    fileName: safeDecodeName(fileNameOf(path)),
     fileSize: size,
     mediaKind: kind,
   };
 
-  await progress(onProgress, 'Чтение файла', 0.08);
-  stages.push('Чтение файла');
   const fileStrings = await readFileStrings(path);
 
   await progress(onProgress, 'Поиск метаданных', 0.2);

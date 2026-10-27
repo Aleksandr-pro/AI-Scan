@@ -59,6 +59,8 @@ interface NativeMediaSpec {
   analyzeImage(path: string): Promise<NativeImageAnalysis>;
   extractVideo(path: string, frameCount: number): Promise<NativeVideoInfo>;
   decodeAudio(path: string, maxSeconds: number): Promise<NativeAudioPcm>;
+  /** Копия content:// → локальный файл; возвращает размер, байт. */
+  copyFromContent(contentUri: string, destPath: string): Promise<number>;
 }
 
 const module: NativeMediaSpec | undefined = NativeModules.NativeMedia;
