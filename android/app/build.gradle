@@ -93,7 +93,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Версия синхронизирована с package.json (единый источник правды).
-        def pkg = new groovy.json.JsonSlurper().parseText(file('../package.json').text)
+        def pkg = new groovy.json.JsonSlurper().parseText(file('../../package.json').text)
         def verParts = pkg.version.toString().tokenize('.')
         def vMajor = verParts[0].toInteger()
         def vMinor = verParts.size() > 1 ? verParts[1].toInteger() : 0
