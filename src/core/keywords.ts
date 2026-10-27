@@ -132,7 +132,27 @@ export const COMMON_SCREEN_DIMENSIONS: Array<[number, number]> = [
   [1440, 2560], [1600, 2560], [1200, 2000], [1600, 3200], [1220, 2712],
 ];
 
-/** Извлекает из строки ASCII-последовательности и ищет маркеры. */
+const ALNUM = /[a-z0-9]/;
+
+/**
+ * Совпадение по границам токена: ключевое слово не должно быть частью
+ * более длинного слова. Без этого «udio» (генератор Udio) матчился внутри
+ * «audiobook»/«audio», а «descript» — внутри «description», из-за чего
+ * обычные файлы ложно помечались как ИИ-генерация.
+ * Разделитель в конце ключа (например «omx.») ограничение справа
+ * не накладывает.
+ */
+function matchesKeywordAt(hay: string, k: string, idx: number): boolean {
+  const startOk = !ALNUM.test(k[0]) || idx === 0 || !ALNUM.test(hay[idx - 1]);
+  const last = k[k.length - 1];
+  const endOk =
+    !ALNUM.test(last) ||
+    idx + k.length >= hay.length ||
+    !ALNUM.test(hay[idx + k.length]);
+  return startOk && endOk;
+}
+
+/** Извлекает из строки ASCII-последовательности и ищет маркеры (по границам слов). */
 export function findKeywords(
   haystack: string,
   dict: Array<{ k: string; label: string; weight: number }>,
@@ -140,8 +160,15 @@ export function findKeywords(
   const hay = haystack.toLowerCase();
   const found: Array<{ k: string; label: string; weight: number }> = [];
   for (const item of dict) {
-    if (hay.includes(item.k) && !found.some(f => f.k === item.k)) {
-      found.push(item);
+    if (found.some(f => f.k === item.k)) { continue; }
+    const k = item.k.toLowerCase();
+    let idx = hay.indexOf(k);
+    while (idx !== -1) {
+      if (matchesKeywordAt(hay, k, idx)) {
+        found.push(item);
+        break;
+      }
+      idx = hay.indexOf(k, idx + 1);
     }
   }
   return found;

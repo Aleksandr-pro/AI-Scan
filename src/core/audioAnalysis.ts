@@ -31,6 +31,10 @@ export interface AudioMetrics {
   rmsStdDb: number;
   stationaryCv: number;
   rmsDbMedian: number;
+  /** Сколько окон считается тихими (≤ −52 дБ) — кандидатов на паузы. */
+  quietWindowCount: number;
+  /** Сколько окон содержит активный звук (> −52 дБ). */
+  activeWindowCount: number;
 }
 
 const WIN = 8192;
@@ -199,7 +203,11 @@ export function computeAudioMetrics(input: AudioInput): AudioMetrics {
 
   const zero = zeroRunStats(s, rate);
 
-  const rmsValues = active.length >= 3 ? active : all;
+  // Динамика считается по ВСЕЙ ленте, включая паузы: живые записи сильно
+  // меняют уровень между репликами/куплетами, а компактная генерация держит
+  // одну и ту же энергию от начала до конца. Раньший расчёт только по активным
+  // окнам делал AGC-диктофоны «плоскими» и ложно тянул их в сторону ИИ.
+  const rmsValues = all;
   const rmsStdDb = rmsValues.length >= 2 ? popStd(rmsValues) : 0;
   const rmsDbMedian = percentile(all, 0.5);
 
@@ -211,6 +219,8 @@ export function computeAudioMetrics(input: AudioInput): AudioMetrics {
     rmsStdDb,
     stationaryCv: highBandStationarity(s),
     rmsDbMedian,
+    quietWindowCount: all.filter(d => d <= -52).length,
+    activeWindowCount: active.length,
   };
 }
 
@@ -227,7 +237,7 @@ export function analyzeAudio(input: AudioInput): Indicator[] {
         id: 'audio_software_ai',
         category: 'metadata',
         side: 'ai',
-        weight: 45,
+        weight: 52,
         title: 'Теги указывают на ИИ-генератор аудио',
         detail:
           'В ID3/Vorbis-тегах найдено имя нейросетевого сервиса. Такие подписи ставят ' +
@@ -300,12 +310,32 @@ export function analyzeAudio(input: AudioInput): Indicator[] {
       id: 'audio_floor_natural',
       category: 'audio',
       side: 'human',
-      weight: -10,
+      weight: -20,
       title: 'Слышимый естественный шумовой фон',
       detail:
         'В паузах сохраняется реальный фон записи (зал/комната/шум техники) — ' +
         'признак живой звукозаписи, а не синтеза «в пустоте».',
       evidence: `пол тишины = ${m.silenceFloorDb.toFixed(1)} dBFS`,
+    });
+  }
+
+  // 3b. Естественные паузы: тихие места есть, но их не вырезали в ноль.
+  if (
+    m.quietWindowCount >= 2 &&
+    m.activeWindowCount >= 3 &&
+    m.longestZeroRunMs < 120
+  ) {
+    out.push({
+      id: 'audio_natural_pauses',
+      category: 'audio',
+      side: 'human',
+      weight: -10,
+      title: 'Естественные паузы с остаточным шумом',
+      detail:
+        'В тихих местах уровень падает, но сэмплы не обнуляются: остаётся ' +
+        'шумовой фон микшера/зал. Вырезание пауз в идеальный ноль — след ' +
+        'цифровой сборки, а живая запись физически не может уйти в ноль.',
+      evidence: `тихих окон: ${m.quietWindowCount}, самое длинное «не-ноль» затишье < 120 мс`,
     });
   }
 
@@ -341,7 +371,7 @@ export function analyzeAudio(input: AudioInput): Indicator[] {
 
   // 5. Микродинамика.
   if (m.rmsStdDb >= 0 && activeDynamicsAvailable(input)) {
-    if (m.rmsStdDb < 2.2) {
+    if (m.rmsStdDb < 1.8) {
       out.push({
         id: 'audio_dynamics_flat',
         category: 'audio',
@@ -354,12 +384,25 @@ export function analyzeAudio(input: AudioInput): Indicator[] {
           'для компактных генеративных моделей и жёсткого лимитера.',
         evidence: `отклонение громкости = ${m.rmsStdDb.toFixed(2)} дБ`,
       });
-    } else if (m.rmsStdDb > 7.5) {
+    } else if (m.rmsStdDb <= 7.5) {
+      out.push({
+        id: 'audio_dynamics_natural',
+        category: 'audio',
+        side: 'human',
+        weight: -7,
+        title: 'Обычный диапазон динамики',
+        detail:
+          'Громкость меняется от фрагмента к фрагменту в диапазоне, характерном ' +
+          'для живых записей и студийных сведений: без искусственной ровности ' +
+          'и без чрезмерной стерильности.',
+        evidence: `отклонение громкости = ${m.rmsStdDb.toFixed(2)} дБ`,
+      });
+    } else {
       out.push({
         id: 'audio_dynamics_live',
         category: 'audio',
         side: 'human',
-        weight: -5,
+        weight: -8,
         title: 'Выраженная динамика записи',
         detail:
           'Сильные перепады уровня между фрагментами — признак живого исполнения ' +
@@ -369,7 +412,7 @@ export function analyzeAudio(input: AudioInput): Indicator[] {
     }
   }
 
-  // 6. Стационарность ВЧ (шум вокодера).
+  // 6. Стационарность ВЧ (шум вокодера) и её отсутствие у живого звука.
   if (m.stationaryCv >= 0 && m.stationaryCv < 0.05) {
     out.push({
       id: 'audio_stationary_hiss',
@@ -383,26 +426,50 @@ export function analyzeAudio(input: AudioInput): Indicator[] {
         'а нейро-вокодер генерирует равномерный шум.',
       evidence: `CV верхних полос = ${m.stationaryCv.toFixed(3)}`,
     });
+  } else if (m.stationaryCv >= 0.15) {
+    out.push({
+      id: 'audio_stationary_lively',
+      category: 'spectrum',
+      side: 'human',
+      weight: -6,
+      title: 'ВЧ-полосы живо меняются во времени',
+      detail:
+        'Энергия высоких частот заметно флуктуирует от окна к окну — так ведёт себя ' +
+        'естественный звук (атаки инструментов, дыхание, сибилянты), ' +
+        'а не ровный шум синтезатора.',
+      evidence: `CV верхних полос = ${m.stationaryCv.toFixed(3)}`,
+    });
   }
 
-  // 7. Псевдо-стерео.
-  if (
-    typeof input.stereoCorrelation === 'number' &&
-    input.stereoCorrelation > 0.999 &&
-    input.channels === 2
-  ) {
-    out.push({
-      id: 'audio_fake_stereo',
-      category: 'audio',
-      side: 'ai',
-      weight: 5,
-      title: 'Каналы идентичны (псевдо-стерео)',
-      detail:
-        'Левый и правый каналы совпадают попиксельно. Настоящая стереозапись ' +
-        'всегда даёт разницу между каналами; монофайл, размноженный в стерео, ' +
-        'характерен для экспортов генераторов.',
-      evidence: `корреляция L/R = ${input.stereoCorrelation.toFixed(4)}`,
-    });
+  // 7. Структура стерео: псевдо-стерео в пользу ИИ, настоящее поле — в пользу человека.
+  if (typeof input.stereoCorrelation === 'number' && input.channels === 2) {
+    if (input.stereoCorrelation > 0.999) {
+      out.push({
+        id: 'audio_fake_stereo',
+        category: 'audio',
+        side: 'ai',
+        weight: 5,
+        title: 'Каналы идентичны (псевдо-стерео)',
+        detail:
+          'Левый и правый каналы совпадают попиксельно. Настоящая стереозапись ' +
+          'всегда даёт разницу между каналами; монофайл, размноженный в стерео, ' +
+          'характерен для экспортов генераторов.',
+        evidence: `корреляция L/R = ${input.stereoCorrelation.toFixed(4)}`,
+      });
+    } else if (input.stereoCorrelation <= 0.98 && input.stereoCorrelation >= -0.9) {
+      out.push({
+        id: 'audio_true_stereo',
+        category: 'audio',
+        side: 'human',
+        weight: -9,
+        title: 'Настоящее стереополе',
+        detail:
+          'Каналы заметно отличаются друг от друга — такой разностью даёт ' +
+          'реальную стереозапись (микрофоны, панорама, реверберация). ' +
+          'У монофайла, скопированного в два канала, корреляция была бы ~1.',
+        evidence: `корреляция L/R = ${input.stereoCorrelation.toFixed(4)}`,
+      });
+    }
   }
 
   // 8. Частота дискретизации 8/16 кГц — типична для синтеза речи.

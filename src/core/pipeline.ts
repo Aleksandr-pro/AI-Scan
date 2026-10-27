@@ -208,9 +208,20 @@ async function readPcmSamples(pcmPath: string, sampleRate: number): Promise<Int1
   return out;
 }
 
-function isLossyAudio(path: string): boolean {
-  const ext = (path.split('.').pop() || '').toLowerCase();
-  return ['mp3', 'aac', 'm4a', 'ogg', 'oga', 'opus', 'amr', 'm4b', 'wma', '3gp'].includes(ext);
+/** Расширения с потерями (и видео-контейнеры: их звуковые дорожки почти всегда lossy). */
+const LOSSY_AUDIO_EXT = [
+  'mp3', 'aac', 'm4a', 'ogg', 'oga', 'opus', 'amr', 'm4b', 'wma', '3gp', '3g2',
+  'mp4', 'm4v', 'mov', 'avi', 'mkv', 'webm', 'ts', 'mpg', 'mpeg', 'flv', 'wmv',
+];
+const LOSSY_AUDIO_MIME =
+  /^audio\/(mpeg|mp3|aac|mp4|x-m4a|ogg|opus|vorbis|3gpp|amr|adpcm|x-ms-wma|mid)/;
+
+function isLossyAudio(path: string, mime?: string | null): boolean {
+  const clean = path.split('?')[0];
+  const ext = (clean.split('.').pop() || '').toLowerCase();
+  if (LOSSY_AUDIO_EXT.includes(ext)) { return true; }
+  if (mime && LOSSY_AUDIO_MIME.test(mime.toLowerCase())) { return true; }
+  return false;
 }
 
 function isWav(path: string): boolean {
@@ -226,6 +237,7 @@ async function analyzeAudioFile(
   warnings: string[],
   stages: string[],
   tech: TechInfo,
+  pickerMime?: string | null,
 ): Promise<Indicator[]> {
   await progress(onProgress, 'Декодирование звука', 0.45);
   stages.push('Декодирование звука');
@@ -271,7 +283,7 @@ async function analyzeAudioFile(
           durationMs: pcm.durationMs,
           bitrate: pcm.bitrate,
           mime: pcm.mime,
-          isLossy: isLossyAudio(path),
+          isLossy: isLossyAudio(path, pcm.mime || pickerMime),
           fileStrings,
         };
         tech.sampleRate = pcm.originalSampleRate;
@@ -294,8 +306,12 @@ async function analyzeAudioFile(
   await progress(onProgress, 'Спектральный анализ аудио', 0.7);
   stages.push('Спектральный анализ');
   if (!input) {
-    return analyzeAudio({ samples: new Int16Array(0), sampleRate: 44100, fileStrings, isLossy: isLossyAudio(path) })
-      .filter(i => i.category === 'metadata' || i.category === 'container');
+    return analyzeAudio({
+      samples: new Int16Array(0),
+      sampleRate: 44100,
+      fileStrings,
+      isLossy: isLossyAudio(path, pickerMime),
+    }).filter(i => i.category === 'metadata' || i.category === 'container');
   }
   return analyzeAudio(input);
 }
@@ -361,7 +377,7 @@ export async function runAnalysis(
     }
   } else if (kind === 'audio') {
     indicators = await analyzeAudioFile(
-      path, fileStrings, size, onProgress, warnings, stages, tech,
+      path, fileStrings, size, onProgress, warnings, stages, tech, options?.mime,
     );
   } else {
     // --- видео ---
