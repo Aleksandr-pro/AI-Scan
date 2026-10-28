@@ -11,35 +11,53 @@ export interface ScoringInput {
   createdAt?: number;
 }
 
-const VERDICT_LABELS: Record<Verdict, string> = {
-  AI: 'Создано или обработано ИИ',
-  HUMAN: 'Создано человеком, без ИИ-обработки',
-  MIXED: 'Смешанная обработка: человек + ИИ',
-  UNCERTAIN: 'Недостаточно данных для вывода',
-};
+/**
+ * Правила v1.3:
+ *  − балл = сумма показанных весов (без коэффициентов) — пользователь должен
+ *    сверять «+45 −11 +5 = +31» с тем, что видит в списке признаков;
+ *  − обе стороны ≥20 → MIXED «Противоречивые сигналы»;
+ *  − |балл| ≥60 → сильная формулировка, 28…59 → «Скорее …»;
+ *  − «Недостаточно данных» только когда данных действительно мало
+ *    (суммарный вес сторон <12).
+ */
+const STRONG_AI = 60;
+const STRONG_HUMAN = -60;
+const LEAN = 28;
+const MIN_POWER = 12;
+const CONFLICT_SIDE = 20;
+
+function labelFor(verdict: Verdict, score: number, power: number): string {
+  switch (verdict) {
+    case 'AI':
+      return score >= STRONG_AI ? 'Создано или обработано ИИ' : 'Скорее ИИ';
+    case 'HUMAN':
+      return score <= STRONG_HUMAN
+        ? 'Создано человеком, без ИИ-обработки'
+        : 'Скорее настоящее';
+    case 'MIXED':
+      return 'Противоречивые сигналы';
+    case 'UNCERTAIN':
+    default:
+      // «Недостаточно данных» — только когда данных действительно мало;
+      // сигналы есть, но сошлись в ноль — говорим честно.
+      return power < MIN_POWER
+        ? 'Недостаточно данных для вывода'
+        : 'Противоречивые сигналы';
+  }
+}
 
 /**
  * Сводит список признаков к вердикту, уверенности и резюме.
- *
- * Правила:
- *  − признаки с weight > 0 тянут в пользу ИИ, weight < 0 — в пользу человека;
- *  − если обе стороны сильны одновременно (сильные ИИ- и человеческие
- *    признаки вместе) — это MIXED (материал человек делал, но правил ИИ);
- *  − при слабой сумме и малом числе независимых источников — UNCERTAIN.
  */
 export function scoreToResult(input: ScoringInput): AnalysisResult {
   const { indicators, tech, stages, warnings, id } = input;
   const createdAt = input.createdAt ?? Date.now();
 
   let raw = 0;
-  for (const ind of indicators) {
-    raw += ind.weight;
-  }
-
-  // Сила каждой стороны.
   let aiPower = 0;
   let humanPower = 0;
   for (const ind of indicators) {
+    raw += ind.weight;
     if (ind.weight > 0) { aiPower += ind.weight; }
     else { humanPower += -ind.weight; }
   }
@@ -62,20 +80,25 @@ export function scoreToResult(input: ScoringInput): AnalysisResult {
   );
   const pillarCount = (hasMetaPillar ? 1 : 0) + (hasPixelPillar ? 1 : 0);
 
-  const score = clamp(Math.round(raw * 0.55), -100, 100);
+  // Балл = сумма весов без масштабирования (см. контракт выше);
+  // кламп нужен только для экстремальных сумм > ±100.
+  const score = clamp(Math.round(raw), -100, 100);
 
   let verdict: Verdict;
-  const strongBoth = aiPower >= 40 && humanPower >= 40;
-  if (strongBoth && Math.abs(aiPower - humanPower) < 60) {
-    verdict = 'MIXED';
-  } else if (score >= 28) {
-    verdict = 'AI';
-  } else if (score <= -28) {
-    verdict = 'HUMAN';
-  } else if (strongBoth) {
-    verdict = 'MIXED';
-  } else {
+  if (aiPower + humanPower < MIN_POWER) {
     verdict = 'UNCERTAIN';
+  } else if (aiPower >= CONFLICT_SIDE && humanPower >= CONFLICT_SIDE) {
+    verdict = 'MIXED';
+  } else if (score >= LEAN) {
+    verdict = 'AI';
+  } else if (score <= -LEAN) {
+    verdict = 'HUMAN';
+  } else {
+    // Данных есть (power ≥ MIN_POWER), но перевес слабый: склоняемся
+    // в сторону большей силы при |балл| ≥ 15, иначе честный отказ от вывода.
+    if (score >= 15) { verdict = 'AI'; }
+    else if (score <= -15) { verdict = 'HUMAN'; }
+    else { verdict = 'UNCERTAIN'; }
   }
 
   // Уверенность: растёт с |score|, числом признаков и числом «столпов».
@@ -94,7 +117,9 @@ export function scoreToResult(input: ScoringInput): AnalysisResult {
   }
   confidence = Math.round(clamp(confidence, 35, 96));
 
-  const summary = buildSummary(verdict, confidence, aiPower, humanPower, indicators);
+  const basis = buildBasis(indicators);
+  const summary = buildSummary(verdict, confidence, aiPower, humanPower, indicators, basis);
+  const power = aiPower + humanPower;
 
   return {
     id,
@@ -103,13 +128,34 @@ export function scoreToResult(input: ScoringInput): AnalysisResult {
     confidence,
     score,
     rawScore: Math.round(raw),
-    verdictLabel: VERDICT_LABELS[verdict],
+    verdictLabel: labelFor(verdict, score, power),
     summary,
     indicators,
     tech,
     stages,
     warnings,
   };
+}
+
+/** На чём основан вывод: метаданные/метки или анализ содержимого. */
+export function buildBasis(indicators: Indicator[]): string {
+  let meta = 0;
+  let content = 0;
+  for (const i of indicators) {
+    if (i.weight === 0) { continue; }
+    if (i.category === 'metadata' || i.category === 'container') {
+      meta += Math.abs(i.weight);
+    } else {
+      content += Math.abs(i.weight);
+    }
+  }
+  const total = meta + content;
+  if (total === 0) { return 'данных для вывода нет'; }
+  if (meta === 0) { return 'вывод основан на анализе содержимого файла'; }
+  if (content === 0) { return 'вывод основан на метаданных и найденных метках'; }
+  if (meta >= content * 1.5) { return 'вывод преимущественно по метаданным и меткам'; }
+  if (content >= meta * 1.5) { return 'вывод преимущественно по анализу содержимого'; }
+  return 'вывод основан на метаданных и анализе содержимого';
 }
 
 function topIndicator(indicators: Indicator[], side: EvidenceSide, take: number): Indicator[] {
@@ -125,6 +171,7 @@ function buildSummary(
   aiPower: number,
   humanPower: number,
   indicators: Indicator[],
+  basis: string,
 ): string {
   const topAi = topIndicator(indicators, 'ai', 2);
   const topHuman = topIndicator(indicators, 'human', 2);
@@ -137,14 +184,14 @@ function buildSummary(
 
   switch (verdict) {
     case 'AI':
-      return `Материал выглядит созданным или обработанным искусственным интеллектом (уверенность ${confidence}%). ${aiPart}. ${humanPart}.`;
+      return `Материал выглядит созданным или обработанным искусственным интеллектом (уверенность ${confidence}%). ${basis[0].toUpperCase()}${basis.slice(1)}. ${aiPart}. ${humanPart}.`;
     case 'HUMAN':
-      return `Признаков ИИ-генерации почти нет: ${humanPart}. ${aiPart}. Совокупность данных соответствует обычной съёмке/записи человеком (уверенность ${confidence}%).`;
+      return `Признаков ИИ-генерации почти нет: ${humanPart}. ${aiPart}. Совокупность данных соответствует обычной съёмке/записи человеком (уверенность ${confidence}%). ${basis[0].toUpperCase()}${basis.slice(1)}.`;
     case 'MIXED':
-      return `Обнаружены одновременно признаки живой съёмки и ИИ-обработки (уверенность ${confidence}%). Похоже, материал был создан человеком, а затем частично обработан нейросетью. ${aiPart}. ${humanPart}.`;
+      return `Сигналы противоречат друг другу: ИИ ${aiPower} против человека ${humanPower} при уверенности ${confidence}%. Похоже, материал был создан человеком, а затем частично обработан нейросетью — либо статистика содержимого спорит с метаданными. ${basis[0].toUpperCase()}${basis.slice(1)}. ${aiPart}. ${humanPart}.`;
     case 'UNCERTAIN':
     default:
-      return `Однозначных доказательств ни в одну сторону нет (уверенность ${confidence}%). Сила сигналов: ИИ ${aiPower}, человек ${humanPower}. ${aiPart}. ${humanPart}.`;
+      return `Однозначных доказательств ни в одну сторону нет (уверенность ${confidence}%). Сила сигналов: ИИ ${aiPower}, человек ${humanPower}. ${basis[0].toUpperCase()}${basis.slice(1)}. ${aiPart}. ${humanPart}.`;
   }
 }
 
@@ -159,4 +206,15 @@ export function sidePowers(indicators: Indicator[]): { ai: number; human: number
     else { neutral += Math.abs(i.weight); }
   }
   return { ai, human, neutral };
+}
+
+/** Строка «сумма признаков» для блока «Подробнее»: +45 +5 +4 −11 −7 −5 = +31. */
+export function weightBreakdown(indicators: Indicator[]): string {
+  const parts = indicators
+    .filter(i => i.weight !== 0)
+    .sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight))
+    .map(i => (i.weight > 0 ? `+${i.weight}` : `${i.weight}`));
+  const sum = indicators.reduce((acc, i) => acc + i.weight, 0);
+  const sumStr = sum > 0 ? `+${sum}` : `${sum}`;
+  return parts.length ? `${parts.join(' ')} = ${sumStr}` : 'нет взвешенных признаков';
 }

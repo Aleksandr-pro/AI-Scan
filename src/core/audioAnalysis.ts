@@ -1,4 +1,5 @@
 import { AI_KEYWORDS, FFMPEG_MARKERS, findKeywords, HUMAN_KEYWORDS } from './keywords';
+import { extractTagFields, isAiSearchable } from './tags';
 import { mean, percentile, popStd, rmsToDb } from './stats';
 import { magnitudeSpectrum } from './fft';
 import { Indicator } from './types';
@@ -27,6 +28,10 @@ export interface AudioMetrics {
   silenceFloorDb: number;
   zeroRunMs: number;
   longestZeroRunMs: number;
+  /** Позиция самой длинной паузы цифровой тишины в мс (для «слышно на 0:42»). */
+  silencePosMs?: number;
+  /** Моменты тихих окон (≤ −52 дБ) в мс — для подписей «слышно на …». */
+  quietTimesMs: number[];
   cutoffHz: number | null;
   rmsStdDb: number;
   stationaryCv: number;
@@ -39,10 +44,17 @@ export interface AudioMetrics {
 
 const WIN = 8192;
 
-function windowRmsDb(samples: Int16Array, rate: number, winSec = 0.4): Array<{ db: number; rms: number }> {
+interface RmsWindow {
+  db: number;
+  rms: number;
+  /** Начало окна в секундах — для подписей «слышно на 0:42». */
+  t: number;
+}
+
+function windowRmsDb(samples: Int16Array, rate: number, winSec = 0.4): RmsWindow[] {
   const win = Math.max(256, Math.floor(rate * winSec));
   const hop = win;
-  const out: Array<{ db: number; rms: number }> = [];
+  const out: RmsWindow[] = [];
   const norm = 32768;
   for (let start = 0; start + win <= samples.length; start += hop) {
     let acc = 0;
@@ -51,41 +63,61 @@ function windowRmsDb(samples: Int16Array, rate: number, winSec = 0.4): Array<{ d
       acc += v * v;
     }
     const rms = Math.sqrt(acc / win);
-    out.push({ db: rmsToDb(rms), rms });
+    out.push({ db: rmsToDb(rms), rms, t: start / rate });
   }
   return out;
 }
 
 /** Самая длинная последовательность «цифровой тишины» (|s| <= 1) в мс. */
-export function zeroRunStats(samples: Int16Array, rate: number): { totalMs: number; longestMs: number; runs: number } {
+export function zeroRunStats(
+  samples: Int16Array,
+  rate: number,
+): { totalMs: number; longestMs: number; runs: number; longestPosMs: number } {
   let cur = 0;
+  let curStart = 0;
   let total = 0;
   let longest = 0;
+  let longestPos = 0;
   let runs = 0;
   const minRun = Math.floor(rate * 0.05); // ≥ 50 мс
+  const close = (runStart: number) => {
+    if (cur >= minRun) {
+      runs++;
+      total += cur;
+      if (cur > longest) {
+        longest = cur;
+        longestPos = runStart;
+      }
+    }
+  };
   for (let i = 0; i < samples.length; i++) {
     const s = samples[i];
     if (s <= 1 && s >= -1) {
+      if (cur === 0) { curStart = i; }
       cur++;
     } else {
-      if (cur >= minRun) {
-        runs++;
-        total += cur;
-        if (cur > longest) { longest = cur; }
-      }
+      close(curStart);
       cur = 0;
     }
   }
-  if (cur >= minRun) {
-    runs++;
-    total += cur;
-    if (cur > longest) { longest = cur; }
-  }
+  close(curStart);
   return {
     totalMs: (total / rate) * 1000,
     longestMs: (longest / rate) * 1000,
+    longestPosMs: (longestPos / rate) * 1000,
     runs,
   };
+}
+
+/** 0:42 / 1:05:09 — для подписей «слышно на …». */
+export function fmtClock(ms: number): string {
+  const total = Math.floor(Math.max(0, ms) / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const ss = String(s).padStart(2, '0');
+  if (h > 0) { return `${h}:${String(m).padStart(2, '0')}:${ss}`; }
+  return `${m}:${ss}`;
 }
 
 /**
@@ -215,12 +247,15 @@ export function computeAudioMetrics(input: AudioInput): AudioMetrics {
     silenceFloorDb,
     zeroRunMs: zero.totalMs,
     longestZeroRunMs: zero.longestMs,
+    silencePosMs: zero.longestMs > 0 ? zero.longestPosMs : undefined,
     cutoffHz: rate >= 40000 ? spectralCutoff(s, rate) : null,
     rmsStdDb,
     stationaryCv: highBandStationarity(s),
     rmsDbMedian,
     quietWindowCount: all.filter(d => d <= -52).length,
     activeWindowCount: active.length,
+    // До 3 моментов тихих окон — для подписей «слышно на 0:42».
+    quietTimesMs: windows.filter(w => w.db <= -52).slice(0, 3).map(w => Math.round(w.t * 1000)),
   };
 }
 
@@ -229,10 +264,22 @@ export function analyzeAudio(input: AudioInput): Indicator[] {
   const out: Indicator[] = [];
   const m = computeAudioMetrics(input);
 
-  // 1. Ключевые слова в контейнере (ID3/Vorbis: software).
-  if (input.fileStrings) {
-    const ai = findKeywords(input.fileStrings, AI_KEYWORDS);
-    if (ai.length > 0) {
+  // 1. Служебные поля тегов (ID3v2/Vorbis/строки кодировщика).
+  //    ИИ-ключевые слова ищутся ТОЛЬКО в полях encoder/software/comment и
+  //    всегда показывают, в каком поле найдены. Случайное совпадение в сырых
+  //    байтах («Google Veo» в пустом MP3) признаком ИИ не считается.
+  const tags = input.fileStrings ? extractTagFields(input.fileStrings) : null;
+  if (tags && tags.fields.length > 0) {
+    const aiHits: Array<{ label: string; field: string }> = [];
+    for (const f of tags.fields) {
+      if (!isAiSearchable(f)) { continue; }
+      for (const hit of findKeywords(f.value, AI_KEYWORDS)) {
+        if (!aiHits.some(h => h.label === hit.label)) {
+          aiHits.push({ label: hit.label, field: f.name });
+        }
+      }
+    }
+    if (aiHits.length > 0) {
       out.push({
         id: 'audio_software_ai',
         category: 'metadata',
@@ -240,14 +287,53 @@ export function analyzeAudio(input: AudioInput): Indicator[] {
         weight: 52,
         title: 'Теги указывают на ИИ-генератор аудио',
         detail:
-          'В ID3/Vorbis-тегах найдено имя нейросетевого сервиса. Такие подписи ставят ' +
-          'сами генераторы музыки и голоса при экспорте файла.',
-        evidence: ai.map(a => a.label).slice(0, 5).join(', '),
+          'В служебных полях тега (энкодер/софт/комментарий) найдено имя нейросетевого ' +
+          'сервиса — такие подписи ставят сами генераторы музыки и голоса при экспорте. ' +
+          'Поле найдено: мы ищем подписи только в служебных полях, а не в сырых байтах файла.',
+        evidence: aiHits
+          .slice(0, 3)
+          .map(h => `поле «${h.field}»: ${h.label}`)
+          .join(' · '),
       });
     }
-    const ffmpeg = FFMPEG_MARKERS.filter(f => input.fileStrings!.toLowerCase().includes(f));
-    const human = findKeywords(input.fileStrings, HUMAN_KEYWORDS);
-    if (ffmpeg.length > 0 && ai.length === 0) {
+
+    // Маркеры обычной записи — тоже только из полей тега.
+    const humanHits: Array<{ label: string; field: string }> = [];
+    for (const f of tags.fields) {
+      for (const hit of findKeywords(f.value, HUMAN_KEYWORDS)) {
+        if (!humanHits.some(h => h.label === hit.label)) {
+          humanHits.push({ label: hit.label, field: f.name });
+        }
+      }
+    }
+    if (humanHits.length > 0 && aiHits.length === 0) {
+      out.push({
+        id: 'audio_human_marker',
+        category: 'metadata',
+        side: 'human',
+        weight: -8,
+        title: 'Теги содержат маркеры обычной записи',
+        detail:
+          'Служебные поля подписываются привычными для бытовых записывающих ' +
+          'устройств/рипрограмм именами.',
+        evidence: humanHits
+          .slice(0, 3)
+          .map(h => `поле «${h.field}»: ${h.label}`)
+          .join(' · '),
+      });
+    }
+
+    // FFmpeg-пересборка — подпись из полей энкодера/софта.
+    const ffmpegHits: Array<{ marker: string; field: string }> = [];
+    for (const f of tags.fields) {
+      if (f.role !== 'encoder' && f.role !== 'software') { continue; }
+      const low = f.value.toLowerCase();
+      const marker = FFMPEG_MARKERS.find(x => low.includes(x));
+      if (marker && !ffmpegHits.some(h => h.marker === marker)) {
+        ffmpegHits.push({ marker, field: f.name });
+      }
+    }
+    if (ffmpegHits.length > 0 && aiHits.length === 0) {
       out.push({
         id: 'audio_ffmpeg_container',
         category: 'container',
@@ -257,18 +343,41 @@ export function analyzeAudio(input: AudioInput): Indicator[] {
         detail:
           'Подпись libav/Lavf означает программную пересборку файла. Так собирают ' +
           'пайплайны генерации аудио; обычные диктофоны и плееры её не ставят.',
-        evidence: `найдено: ${ffmpeg.slice(0, 3).join(', ')}`,
+        evidence: ffmpegHits
+          .slice(0, 3)
+          .map(h => `поле «${h.field}»: ${h.marker}`)
+          .join(' · '),
       });
     }
-    if (human.length > 0 && ai.length === 0) {
+
+    // Релизные теги (офлайн, без сети): исполнитель + название → сильный
+    // признак настоящей песни. Сuno-подобные выдачи обычно пишут себя в
+    // энкодер — тогда срабатывает ИИ-признак выше, а здесь ничего не добавляем.
+    const hasAiTag = aiHits.length > 0;
+    if (!hasAiTag && tags.artist && tags.title && tags.artist.trim().length >= 2) {
       out.push({
-        id: 'audio_human_marker',
+        id: 'audio_release_tags',
         category: 'metadata',
         side: 'human',
-        weight: -8,
-        title: 'В файлах найдены маркеры обычной записи',
-        detail: 'Теги содержат привычные для бытовых записывающих устройств подписи.',
-        evidence: human.map(h => h.label).slice(0, 4).join(', '),
+        weight: -30,
+        title: 'Найдены теги релиза: исполнитель и название',
+        detail:
+          'В ID3/Vorbis-тегах заполнены поля исполнителя и названия — так оформляют ' +
+          'выпущенные песни (студийные релизы, каталоги артистов). Нейрогенераторы ' +
+          'обычно ставят вместо имени сервиса себя, а не конкретного исполнителя.',
+        evidence: `${tags.artist} — ${tags.title}${tags.album ? ` · альбом «${tags.album}»` : ''}`,
+      });
+    } else if (!hasAiTag && (tags.artist || tags.title)) {
+      out.push({
+        id: 'audio_release_tags_partial',
+        category: 'metadata',
+        side: 'human',
+        weight: -12,
+        title: 'Теги содержат название или исполнителя',
+        detail:
+          'Заполнено одно из релизных полей (исполнитель/название). Частичные ' +
+          'теги — слабый, но реальный признак обычного музыкального файла.',
+        evidence: [tags.artist, tags.title].filter(Boolean).join(' — '),
       });
     }
   }
@@ -287,7 +396,9 @@ export function analyzeAudio(input: AudioInput): Indicator[] {
         'В «тихих» местах сэмплы равны ровно нулю. Живая запись почти всегда несёт ' +
         'шумовой фон (дыхание, зал, шум электроники); вырезание в чистый ноль — ' +
         'типичный след синтеза или жёсткой пороговой обработки.',
-      evidence: `тишина без шума: ${m.zeroRunMs.toFixed(0)} мс подряд (макс ${m.longestZeroRunMs.toFixed(0)} мс)`,
+      evidence:
+        `тишина без шума: ${m.zeroRunMs.toFixed(0)} мс подряд ` +
+        `(макс ${m.longestZeroRunMs.toFixed(0)} мс${m.silencePosMs != null ? `, слышно на ${fmtClock(m.silencePosMs)}` : ''})`,
     });
   }
 
@@ -335,7 +446,11 @@ export function analyzeAudio(input: AudioInput): Indicator[] {
         'В тихих местах уровень падает, но сэмплы не обнуляются: остаётся ' +
         'шумовой фон микшера/зал. Вырезание пауз в идеальный ноль — след ' +
         'цифровой сборки, а живая запись физически не может уйти в ноль.',
-      evidence: `тихих окон: ${m.quietWindowCount}, самое длинное «не-ноль» затишье < 120 мс`,
+      evidence:
+        `тихих окон: ${m.quietWindowCount}` +
+        (m.quietTimesMs.length
+          ? `, слышно на ${m.quietTimesMs.map(t => fmtClock(t)).join(', ')}`
+          : ''),
     });
   }
 

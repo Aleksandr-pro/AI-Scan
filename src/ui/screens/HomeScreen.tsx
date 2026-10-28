@@ -36,7 +36,7 @@ const KINDS: Array<{ kind: MediaKind; title: string; Icon: typeof IconPhoto }> =
   { kind: 'audio', title: 'Аудио', Icon: IconAudio },
 ];
 
-/** Подпись справа: процент всегда с расшифровкой, для UNCERTAIN — «Неясно». */
+/** Подпись справа: процент всегда с расшифровкой, для MIXED/UNCERTAIN — слова. */
 function verdictTag(r: AnalysisResult): string {
   switch (r.verdict) {
     case 'AI':
@@ -44,7 +44,7 @@ function verdictTag(r: AnalysisResult): string {
     case 'HUMAN':
       return `${r.confidence}% ЧЕЛ`;
     case 'MIXED':
-      return 'смешано';
+      return 'спорно';
     default:
       return 'Неясно';
   }

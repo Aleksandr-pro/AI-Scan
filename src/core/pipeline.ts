@@ -313,14 +313,34 @@ async function analyzeAudioFile(
       isLossy: isLossyAudio(path, pickerMime),
     }).filter(i => i.category === 'metadata' || i.category === 'container');
   }
+  // Волновая форма для шапки результата: 40 пиков по окнам.
+  tech.waveform = computeWaveform(input.samples, 40);
   return analyzeAudio(input);
+}
+
+/** Пики волновой формы (0…1) — для отрисовки волны в шапке результата. */
+function computeWaveform(samples: Int16Array, bars: number): number[] {
+  if (samples.length === 0 || bars <= 0) { return []; }
+  const out: number[] = [];
+  const step = Math.max(1, Math.floor(samples.length / bars));
+  for (let b = 0; b < bars; b++) {
+    const start = b * step;
+    const end = Math.min(samples.length, start + step);
+    let peak = 0;
+    for (let i = start; i < end; i += Math.max(1, Math.floor(step / 64))) {
+      const v = Math.abs(samples[i]);
+      if (v > peak) { peak = v; }
+    }
+    out.push(Math.min(1, peak / 32768));
+  }
+  return out;
 }
 
 /** Главный пайплайн: файл → AnalysisResult. */
 export async function runAnalysis(
   path: string,
   onProgress?: ProgressFn,
-  options?: { mime?: string | null },
+  options?: { mime?: string | null; previewUri?: string | null },
 ): Promise<AnalysisResult> {
   const kind = detectKind(path, options?.mime);
   const warnings: string[] = [];
@@ -343,6 +363,9 @@ export async function runAnalysis(
     fileName: safeDecodeName(fileNameOf(path)),
     fileSize: size,
     mediaKind: kind,
+    // Превью для шапки результата: фото показываем как есть; для видео
+    // ниже подставим первый извлечённый кадр.
+    previewUri: options?.previewUri || undefined,
   };
 
   const fileStrings = await readFileStrings(path);
@@ -409,6 +432,11 @@ export async function runAnalysis(
         if (info.bitrate) { tech.bitrate = info.bitrate; }
         if (info.frameRate) { tech.frameRate = info.frameRate; }
         if (info.ftyp) { tech.extra = { ...(tech.extra || {}), ftyp: info.ftyp }; }
+        // Первый извлечённый кадр — превью в шапке результата.
+        if (info.frames.length > 0) {
+          const fp = info.frames[0].path;
+          tech.previewUri = fp.startsWith('file://') ? fp : `file://${fp}`;
+        }
         stages.push('Извлечение кадров');
 
         for (let i = 0; i < Math.min(VIDEO_FRAMES_DEEP, info.frames.length); i++) {

@@ -1,5 +1,5 @@
-import { AnalysisResult, EvidenceSide } from './types';
-import { sidePowers } from './scoring';
+import { AnalysisResult, EvidenceSide, MediaKind } from './types';
+import { sidePowers, weightBreakdown } from './scoring';
 
 const SIDE_LABEL: Record<EvidenceSide, string> = {
   ai: 'в пользу ИИ',
@@ -52,6 +52,7 @@ export function buildReport(result: AnalysisResult): string {
 
   const powers = sidePowers(result.indicators);
   lines.push(`Сила сигналов: ИИ ${powers.ai} · человек ${powers.human}`);
+  lines.push(`Сумма весов признаков: ${weightBreakdown(result.indicators)}`);
   lines.push('');
 
   const groups: Array<[EvidenceSide, string]> = [
@@ -103,9 +104,23 @@ export function buildReport(result: AnalysisResult): string {
     lines.push(`Примечания: ${result.warnings.join('; ')}`);
   }
   lines.push('');
-  lines.push('Методика: эвристический анализ метаданных, статистики шума, частотных');
-  lines.push('спектров и контейнера файла. Оценка вероятностная и не гарантирует');
-  lines.push('100% результат — это инструмент первой линии проверки.');
+  lines.push(`Методика (${KIND_LABEL[result.tech.mediaKind]}): ${methodFor(result.tech.mediaKind)}`);
+  lines.push('Оценка вероятностная и не гарантирует 100% результат — это');
+  lines.push('инструмент первой линии проверки.');
   lines.push('═══════════════════════════════');
   return lines.join('\n');
+}
+
+/** Методика описывается словами своего типа файла — без жаргона чужого. */
+function methodFor(kind: MediaKind): string {
+  switch (kind) {
+    case 'photo':
+      return 'чтение EXIF/метаданных, статистика шума и текстуры кадра, 2D-спектральный анализ и поиск периодических артефактов.';
+    case 'video':
+      return 'служебные данные контейнера, попиксельный анализ извлечённых кадров и проверка звуковой дорожки.';
+    case 'audio':
+      return 'разбор служебных полей тегов, анализ шумового фона, спектра и динамики записи.';
+    default:
+      return 'метаданные и статистика содержимого файла.';
+  }
 }

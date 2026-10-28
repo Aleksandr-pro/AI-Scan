@@ -83,6 +83,9 @@ function aggregateFrameIndicators(frames: VideoInput['frames']): Indicator[] {
   }
 
   for (const [, { weights, sample }] of byId) {
+    // Слабые сигналы показываем только если они подтвердились минимум на
+    // 3 кадрах — на 1–2 кадрах «аномальная насыщенность» ничего не значит.
+    if (weights.length < 3) { continue; }
     const avg = mean(weights);
     const agreement =
       weights.filter(w => Math.sign(w) === Math.sign(avg) && Math.abs(w) > 0).length / weights.length;
@@ -92,7 +95,7 @@ function aggregateFrameIndicators(frames: VideoInput['frames']): Indicator[] {
       id: `frames_${sample.id}`,
       weight: Math.round(avg * 0.9),
       title: `${sample.title} (по кадрам видео)`,
-      detail: sample.detail + ` Проверено кадров: ${weights.length}.`,
+      detail: sample.detail + ` Признак подтвердился в ${weights.length} кадрах из ${frames.length} проверенных.`,
     });
   }
   return out;

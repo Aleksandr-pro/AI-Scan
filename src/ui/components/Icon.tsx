@@ -99,6 +99,23 @@ export const IconChevronRight: React.FC<IconProps> = ({ size, color, strokeWidth
   </Svg>
 );
 
+/** Шеврон-разворот: вправо (свёрнут) или вверх (раскрыт). */
+export const IconChevron: React.FC<IconProps & { up?: boolean }> = ({
+  size,
+  color,
+  strokeWidth,
+  up,
+}) =>
+  up ? (
+    <Svg {...prep(size, color, strokeWidth)}>
+      <Path d="M5.5 14.5l6.5-6.5 6.5 6.5" />
+    </Svg>
+  ) : (
+    <Svg {...prep(size, color, strokeWidth)}>
+      <Path d="M5.5 9.5l6.5 6.5 6.5-6.5" />
+    </Svg>
+  );
+
 export const IconSpark: React.FC<IconProps> = ({ size, color, strokeWidth }) => (
   <Svg {...prep(size, color, strokeWidth)}>
     <Path d="M11 3.5l1.7 4.4 4.4 1.7-4.4 1.7L11 15.7 9.3 11.3 4.9 9.6l4.4-1.7L11 3.5z" />

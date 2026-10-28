@@ -37,6 +37,7 @@ export default function App() {
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [pendingName, setPendingName] = useState('');
   const [pendingMime, setPendingMime] = useState<string | null>(null);
+  const [pendingPreviewUri, setPendingPreviewUri] = useState<string | null>(null);
   const [progress, setProgress] = useState<AnalysisProgress | null>(null);
   const [error, setError] = useState<string | undefined>(undefined);
   const cancelled = useRef(false);
@@ -92,6 +93,7 @@ export default function App() {
       setPendingPath(path);
       setPendingName(display);
       setPendingMime(res.type ?? null);
+      setPendingPreviewUri(raw);
       setProgress({ stage: 'Чтение файла', progress: 0.02 });
       setError(undefined);
       setScreen('analyzing');
@@ -114,7 +116,7 @@ export default function App() {
               setProgress(p);
             }
           },
-          { mime: pendingMime },
+          { mime: pendingMime, previewUri: pendingPreviewUri },
         );
         if (!alive || cancelled.current) { return; }
         setCurrent(result);
@@ -130,7 +132,7 @@ export default function App() {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, pendingPath, pendingMime]);
+  }, [screen, pendingPath, pendingMime, pendingPreviewUri]);
 
   const goHome = useCallback(() => {
     cancelled.current = true;

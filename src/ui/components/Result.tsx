@@ -2,9 +2,16 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Indicator } from '../../core/types';
 import { colors, spacing, verdictTheme } from '../theme';
-import { fmtWeight } from '../format';
 import { Chip } from './Card';
 import { VerdictIcon } from './Icon';
+
+/** Сила признака словами: пользователь не читает «+45» без объяснения. */
+export function strengthLabel(w: number): string {
+  const a = Math.abs(w);
+  if (a >= 25) { return 'сильный'; }
+  if (a >= 10) { return 'средний'; }
+  return 'слабый';
+}
 
 /** Строка признака: чистый фон, воздух и тонкий разделитель. */
 export function IndicatorItem({ item }: { item: Indicator }) {
@@ -16,7 +23,9 @@ export function IndicatorItem({ item }: { item: Indicator }) {
         <Text style={styles.title}>{item.title}</Text>
         {item.weight !== 0 && (
           <View style={[styles.weightTag, { backgroundColor: tone + '16' }]}>
-            <Text style={[styles.weight, { color: tone }]}>{fmtWeight(item.weight)}</Text>
+            <Text style={[styles.weight, { color: tone }]}>
+              {strengthLabel(item.weight)}
+            </Text>
           </View>
         )}
       </View>
@@ -28,28 +37,28 @@ export function IndicatorItem({ item }: { item: Indicator }) {
   );
 }
 
-/** Герой вердикта: статус и метрика разделены, шкала тонкая, монохромная, с цветной точкой. */
+/**
+ * Герой вердикта: статус, уверенность и ОДНА шкала «человек ←→ ИИ»
+ * с точкой на позиции балла. Никаких вторых полос и повтора списка
+ * признаков — под шкалой только строка «на чём основан вывод».
+ */
 export function VerdictHero({
   verdict,
   label,
   confidence,
-  summary,
+  score,
+  basis,
 }: {
   verdict: keyof typeof verdictTheme;
   label: string;
   confidence: number;
-  summary: string;
+  score: number;
+  basis: string;
 }) {
   const t = verdictTheme[verdict];
-  const short =
-    verdict === 'AI'
-      ? 'ИИ подозревается'
-      : verdict === 'HUMAN'
-        ? 'Следов ИИ не найдено'
-        : verdict === 'MIXED'
-          ? 'Человек + ИИ'
-          : 'Данных мало';
   const conf = Math.max(0, Math.min(100, confidence));
+  const dotPos = Math.max(0, Math.min(100, (score + 100) / 2));
+  const dotColor = score > 5 ? colors.ai : score < -5 ? colors.human : t.color;
   return (
     <View style={styles.hero}>
       <View style={styles.heroTop}>
@@ -64,15 +73,21 @@ export function VerdictHero({
       </View>
 
       <View style={styles.scaleRow}>
-        <Text style={styles.scaleCaption}>{short}</Text>
-        <Text style={styles.scaleRange}>0—100</Text>
+        <Text style={[styles.scaleEnd, { color: colors.human }]}>человек</Text>
+        <Text style={styles.scaleEndRight}>ИИ</Text>
       </View>
       <View style={styles.scaleTrack}>
-        <View style={[styles.scaleFill, { width: `${conf}%` }]} />
-        <View style={[styles.scaleDot, { left: `${conf}%` }, { backgroundColor: t.color }]} />
+        <View style={styles.scaleDivider} />
+        <View
+          style={[
+            styles.scaleDot,
+            { left: `${dotPos}%` },
+            { backgroundColor: dotColor },
+          ]}
+        />
       </View>
 
-      <Text style={styles.summary}>{summary}</Text>
+      <Text style={styles.basis}>Вывод: {basis}</Text>
     </View>
   );
 }
@@ -117,9 +132,8 @@ const styles = StyleSheet.create({
     borderRadius: 7,
   },
   weight: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '700',
-    fontVariant: ['tabular-nums'],
   },
   detail: {
     color: colors.textDim,
@@ -169,11 +183,10 @@ const styles = StyleSheet.create({
   scaleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
     marginTop: spacing.l,
   },
-  scaleCaption: { color: colors.textDim, fontSize: 12.5 },
-  scaleRange: { color: colors.textFaint, fontSize: 10.5, fontFamily: 'monospace' },
+  scaleEnd: { fontSize: 12, fontWeight: '700' },
+  scaleEndRight: { fontSize: 12, fontWeight: '700', color: colors.ai },
   scaleTrack: {
     height: 4,
     borderRadius: 2,
@@ -181,12 +194,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
     justifyContent: 'center',
   },
-  scaleFill: {
+  scaleDivider: {
     position: 'absolute',
-    left: 0,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(232,236,244,0.22)',
+    left: '50%',
+    marginLeft: -0.5,
+    width: 1,
+    height: 10,
+    top: -3,
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
   scaleDot: {
     position: 'absolute',
@@ -198,10 +213,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.bg,
   },
-  summary: {
+  basis: {
     color: colors.textDim,
-    fontSize: 13.5,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 19,
     marginTop: spacing.m,
   },
 });

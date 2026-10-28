@@ -215,7 +215,7 @@ describe('videoAnalysis', () => {
     const agg = out.find(i => i.id === 'frames_noise_too_clean');
     expect(agg).toBeDefined();
     expect(agg!.weight).toBe(Math.round(14 * 0.9));
-    expect(agg!.detail).toContain('Проверено кадров: 3');
+    expect(agg!.detail).toContain('Признак подтвердился в 3 кадрах из 3 проверенных.');
   });
 
   test('индикаторы аудиодорожки масштабируются', () => {

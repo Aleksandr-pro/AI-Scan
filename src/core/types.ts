@@ -49,6 +49,10 @@ export interface TechInfo {
   channels?: number;
   codec?: string;
   extra?: Record<string, string | number | boolean | undefined>;
+  /** Локальный URI превью (фото/кадр видео) для шапки экрана результата. */
+  previewUri?: string;
+  /** Нормализованные пики волновой формы аудио (0…1) для шапки результата. */
+  waveform?: number[];
 }
 
 export interface AnalysisResult {
