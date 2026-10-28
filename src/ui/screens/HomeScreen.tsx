@@ -87,7 +87,9 @@ export function HomeScreen({ history, onPick, onOpenResult, onOpenHistory, onOpe
           onPress={() => onPick(kind)}
           style={({ pressed }) => [styles.dropzoneAction, pressed && styles.pressed]}
         >
-          <IconUpload size={38} color={colors.accent} strokeWidth={1.5} />
+          <View style={styles.dropzoneIcon}>
+            <IconUpload size={26} color={colors.accent} strokeWidth={1.6} />
+          </View>
           <Text style={styles.dropzoneTitle}>Выбрать файл</Text>
           <Text style={styles.dropzoneHint}>Нажмите, чтобы открыть проводник</Text>
         </Pressable>
@@ -101,17 +103,17 @@ export function HomeScreen({ history, onPick, onOpenResult, onOpenHistory, onOpe
         style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
       >
         <Text style={styles.primaryBtnText}>Выбрать файл вручную</Text>
-        <IconArrowRight size={17} color="#062730" strokeWidth={2} />
+        <IconArrowRight size={17} color={colors.accent} strokeWidth={2} />
       </Pressable>
 
       {/* Второстепенные переходы — без рамок, только воздух */}
       <View style={styles.linksRow}>
         <Pressable onPress={onOpenAbout} style={({ pressed }) => [styles.link, pressed && styles.pressed]}>
-          <IconInfo size={16} color={colors.textFaint} />
+          <IconInfo size={16} color={colors.textDim} />
           <Text style={styles.linkText}>Как работает анализ</Text>
         </Pressable>
         <Pressable onPress={onOpenHistory} style={({ pressed }) => [styles.link, pressed && styles.pressed]}>
-          <IconClock size={16} color={colors.textFaint} />
+          <IconClock size={16} color={colors.textDim} />
           <Text style={styles.linkText}>История проверок</Text>
         </Pressable>
       </View>
@@ -153,15 +155,15 @@ export function HomeScreen({ history, onPick, onOpenResult, onOpenHistory, onOpe
 
       <View style={styles.factsRow}>
         <View style={styles.fact}>
-          <IconShield size={14} color={colors.textFaint} />
+          <IconShield size={14} color={colors.textDim} />
           <Text style={styles.factText}>офлайн</Text>
         </View>
         <View style={styles.fact}>
-          <IconPhone size={14} color={colors.textFaint} />
+          <IconPhone size={14} color={colors.textDim} />
           <Text style={styles.factText}>на устройстве</Text>
         </View>
         <View style={styles.fact}>
-          <IconPulse size={14} color={colors.textFaint} />
+          <IconPulse size={14} color={colors.textDim} />
           <Text style={styles.factText}>эвристика + спектры</Text>
         </View>
       </View>
@@ -188,13 +190,15 @@ const styles = StyleSheet.create({
   logoAccent: { color: colors.accent },
   tagline: { color: colors.textDim, fontSize: 13, marginTop: 5, fontWeight: '400' },
 
-  /* Зона загрузки */
+  /* Зона загрузки — главный герой страницы */
   dropzone: {
-    backgroundColor: colors.bgElevated,
+    backgroundColor: colors.card,
     borderRadius: 22,
     paddingHorizontal: spacing.m,
     paddingTop: spacing.m,
     paddingBottom: spacing.l,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   segment: {
     flexDirection: 'row',
@@ -212,15 +216,26 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 11,
   },
-  segmentItemActive: { backgroundColor: colors.card },
+  segmentItemActive: { backgroundColor: '#1E263A' },
   segmentText: { color: colors.textFaint, fontSize: 13, fontWeight: '600' },
   segmentTextActive: { color: colors.text, fontWeight: '700' },
   dropzoneAction: {
     alignItems: 'center',
-    paddingVertical: 26,
+    paddingVertical: 24,
     gap: 6,
   },
-  dropzoneTitle: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 6 },
+  dropzoneIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(34,211,238,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(34,211,238,0.38)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  dropzoneTitle: { color: '#F4F7FD', fontSize: 17, fontWeight: '800', marginTop: 4 },
   dropzoneHint: { color: colors.textFaint, fontSize: 12.5 },
   dropzoneFormats: {
     color: colors.textFaint,
@@ -230,24 +245,21 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
 
-  /* Основная кнопка */
+  /* Основная кнопка — тонированный акцент: контраст без большой яркости */
   primaryBtn: {
     marginTop: spacing.m,
-    backgroundColor: colors.accent,
+    backgroundColor: 'rgba(34,211,238,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(34,211,238,0.45)',
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 13,
     paddingHorizontal: spacing.l,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: colors.accent,
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 6,
   },
-  primaryBtnText: { color: '#062730', fontSize: 15, fontWeight: '800' },
+  primaryBtnText: { color: colors.accent, fontSize: 15, fontWeight: '800' },
 
   /* Ссылки */
   linksRow: {
