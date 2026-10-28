@@ -89,17 +89,43 @@
         на APK: анализ идёт на устройстве, файлы никуда не отправляются.
       </p>
 
-      <figure>
-        <div class="shots">
-          <img src="assets/screens/home.png" alt="Главный экран AI Scan: выбор фото, видео или аудио" width="390" height="844" loading="lazy">
-          <img src="assets/screens/result.png" alt="Экран результата: вердикт, шкала человек — ИИ, признаки" width="390" height="844" loading="lazy">
-          <img src="assets/screens/about.png" alt="Экран «Как работает анализ»: шесть групп проверок" width="390" height="844" loading="lazy">
+      <div class="slides" data-slides aria-roledescription="карусель" aria-label="Экраны приложения">
+        <div class="slides-viewport" data-slides-viewport tabindex="0" role="group" aria-label="Слайды">
+          <div class="slides-track">
+            <figure class="slide" aria-roledescription="слайд" aria-label="1 из 4">
+              <img src="assets/screens/home.png" alt="Главный экран AI Scan: выбор фото, видео или аудио" width="390" height="844" loading="lazy">
+              <figcaption>Главный экран: три формата и одна кнопка. Файл остаётся на устройстве.</figcaption>
+            </figure>
+            <figure class="slide" aria-roledescription="слайд" aria-label="2 из 4">
+              <img src="assets/screens/result.png" alt="Экран результата: вердикт, уверенность 96%, шкала человек — ИИ, признаки с весами" width="390" height="844" loading="lazy">
+              <figcaption>Вердикт: статус, уверенность и шкала «человек — ИИ» с точкой на позиции балла.</figcaption>
+            </figure>
+            <figure class="slide" aria-roledescription="слайд" aria-label="3 из 4">
+              <img src="assets/screens/analyzing.png" alt="Экран анализа: этапы — файл, метаданные, DSP, вердикт" width="390" height="844" loading="lazy">
+              <figcaption>Этапы подписаны словами: видно, что именно сейчас происходит с файлом.</figcaption>
+            </figure>
+            <figure class="slide" aria-roledescription="слайд" aria-label="4 из 4">
+              <img src="assets/screens/about.png" alt="Экран «Как работает анализ»: шесть групп проверок" width="390" height="844" loading="lazy">
+              <figcaption>Методика целиком — в приложении, на том же языке, что и этот гайд.</figcaption>
+            </figure>
+          </div>
         </div>
-        <figcaption>
-          Три экрана приложения: выбор материала, вердикт со шкалой «человек — ИИ», описание методики.
-          Ни один файл не покидает устройство.
-        </figcaption>
-      </figure>
+        <div class="slides-bar">
+          <button class="slides-nav" type="button" data-slide-prev aria-label="Предыдущий экран">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>
+          </button>
+          <div class="slides-dots" data-slide-dots>
+            <button class="slides-dot is-on" type="button" aria-label="Экран 1" aria-current="true"></button>
+            <button class="slides-dot" type="button" aria-label="Экран 2"></button>
+            <button class="slides-dot" type="button" aria-label="Экран 3"></button>
+            <button class="slides-dot" type="button" aria-label="Экран 4"></button>
+          </div>
+          <span class="slides-count"><b data-slide-current>1</b>&nbsp;/&nbsp;4</span>
+          <button class="slides-nav" type="button" data-slide-next aria-label="Следующий экран">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg>
+          </button>
+        </div>
+      </div>
 
       <h2 id="why">Почему «посмотреть внимательнее» больше не работает</h2>
 

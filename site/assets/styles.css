@@ -5,19 +5,19 @@
 
 :root {
   --bg: #FFFFFF;
-  --bg-soft: #F7F7F7;
-  --bg-quote: #F9F9F9;
-  --line: #E4E4E4;
-  --line-strong: #CFCFCF;
-  --text: #171A1F;
-  --text-2: #6C7278;
-  --text-3: #9099A1;
-  --link: #3B72CE;
-  --link-hover: #2456A6;
-  --brand: #649FEF;
-  --brand-deep: #3B72CE;
-  --green: #2E9E62;
-  --red: #C0442F;
+  --bg-soft: #F4F5F7;
+  --bg-quote: #F7F8FA;
+  --line: #D5D9DE;
+  --line-strong: #B9BFC6;
+  --text: #0C0E11;
+  --text-2: #454C54;
+  --text-3: #6A727A;
+  --link: #1552B0;
+  --link-hover: #0D3A80;
+  --brand: #3E7BE8;
+  --brand-deep: #1B54B8;
+  --green: #1E7A4A;
+  --red: #A63A26;
   --f-sans: 'Fira Sans', -apple-system, 'Segoe UI', Roboto, sans-serif;
   --f-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
   --w: 1160px;
@@ -247,16 +247,100 @@ figcaption {
   color: var(--text-2);
   text-align: center;
 }
-.shots {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  padding: 20px;
-  background: var(--bg-soft);
+/* ── Слайды экранов ────────────────────────────────────── */
+.slides {
+  margin: 30px 0;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
+  background: var(--bg-soft);
+  overflow: hidden;
 }
-.shots img { border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.slides-viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.slides-viewport::-webkit-scrollbar { display: none; }
+.slides-viewport:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+.slides-track { display: flex; }
+.slide {
+  flex: 0 0 100%;
+  min-width: 100%;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  margin: 0;
+  padding: 26px 24px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.slide img {
+  width: min(100%, 300px);
+  height: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: #000;
+  box-shadow: 0 2px 16px rgba(12, 14, 17, 0.1);
+}
+.slide figcaption {
+  margin-top: 16px;
+  min-height: 2.9em;
+  max-width: 44ch;
+  text-align: center;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+.slides-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 4px 16px 16px;
+}
+.slides-nav {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.slides-nav:hover { background: #fff; color: var(--text); border-color: var(--text-3); }
+.slides-nav:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.slides-nav:disabled { opacity: 0.35; cursor: default; }
+.slides-dots { display: flex; align-items: center; gap: 8px; }
+.slides-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: var(--line-strong);
+  cursor: pointer;
+  transition: width 0.18s ease, background-color 0.18s ease;
+}
+.slides-dot:hover { background: var(--text-3); }
+.slides-dot.is-on { width: 22px; background: var(--brand-deep); }
+.slides-dot:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; }
+.slides-count {
+  font-family: var(--f-mono);
+  font-size: 12.5px;
+  color: var(--text-3);
+  letter-spacing: 0.02em;
+  min-width: 42px;
+  text-align: center;
+}
+.slides-count b { color: var(--text); font-weight: 500; }
 
 /* ── Спойлер ───────────────────────────────────────────── */
 .spoiler {
@@ -458,7 +542,11 @@ td { line-height: 1.5; }
   h2 { font-size: 23px; margin-top: 38px; }
   h3 { font-size: 19px; }
   .lead { font-size: 17.5px; }
-  .shots { grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; }
+  .slide { padding: 18px 16px 4px; }
+  .slide img { width: min(100%, 260px); }
+  .slide figcaption { font-size: 14px; margin-top: 13px; min-height: 3.1em; }
+  .slides-bar { gap: 10px; padding: 2px 12px 14px; }
+  .slides-dots { gap: 7px; }
   .cta { flex-wrap: wrap; gap: 12px 14px; padding: 18px; }
   .cta-mark { width: 40px; height: 40px; border-radius: 10px; font-size: 13px; }
   .cta-body { flex: 1 1 180px; }
@@ -471,5 +559,5 @@ td { line-height: 1.5; }
 }
 @media (max-width: 420px) {
   .container { padding: 0 16px; }
-  .shots { grid-template-columns: repeat(3, 1fr); }
+  .slide img { width: min(100%, 232px); }
 }
