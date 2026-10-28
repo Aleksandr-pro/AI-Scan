@@ -151,11 +151,11 @@ export function buildBasis(indicators: Indicator[]): string {
   }
   const total = meta + content;
   if (total === 0) { return 'данных для вывода нет'; }
-  if (meta === 0) { return 'вывод основан на анализе содержимого файла'; }
-  if (content === 0) { return 'вывод основан на метаданных и найденных метках'; }
-  if (meta >= content * 1.5) { return 'вывод преимущественно по метаданным и меткам'; }
-  if (content >= meta * 1.5) { return 'вывод преимущественно по анализу содержимого'; }
-  return 'вывод основан на метаданных и анализе содержимого';
+  if (meta === 0) { return 'по анализу содержимого файла'; }
+  if (content === 0) { return 'по метаданным и найденным меткам'; }
+  if (meta >= content * 1.5) { return 'преимущественно по метаданным и меткам'; }
+  if (content >= meta * 1.5) { return 'преимущественно по анализу содержимого'; }
+  return 'по метаданным и анализу содержимого';
 }
 
 function topIndicator(indicators: Indicator[], side: EvidenceSide, take: number): Indicator[] {
@@ -182,16 +182,21 @@ function buildSummary(
     ? `Признаки живой съёмки: ${topHuman.map(i => i.title.toLowerCase()).join('; ')}`
     : 'Метаданные камеры не обнаружены';
 
+  // «Вывод по метаданным…» / особый случай пустых данных.
+  const basisLine = basis.startsWith('данных')
+    ? 'Данных для вывода нет.'
+    : `Вывод ${basis[0].toUpperCase()}${basis.slice(1)}.`;
+
   switch (verdict) {
     case 'AI':
-      return `Материал выглядит созданным или обработанным искусственным интеллектом (уверенность ${confidence}%). ${basis[0].toUpperCase()}${basis.slice(1)}. ${aiPart}. ${humanPart}.`;
+      return `Материал выглядит созданным или обработанным искусственным интеллектом (уверенность ${confidence}%). ${basisLine} ${aiPart}. ${humanPart}.`;
     case 'HUMAN':
-      return `Признаков ИИ-генерации почти нет: ${humanPart}. ${aiPart}. Совокупность данных соответствует обычной съёмке/записи человеком (уверенность ${confidence}%). ${basis[0].toUpperCase()}${basis.slice(1)}.`;
+      return `Признаков ИИ-генерации почти нет: ${humanPart}. ${aiPart}. Совокупность данных соответствует обычной съёмке/записи человеком (уверенность ${confidence}%). ${basisLine}`;
     case 'MIXED':
-      return `Сигналы противоречат друг другу: ИИ ${aiPower} против человека ${humanPower} при уверенности ${confidence}%. Похоже, материал был создан человеком, а затем частично обработан нейросетью — либо статистика содержимого спорит с метаданными. ${basis[0].toUpperCase()}${basis.slice(1)}. ${aiPart}. ${humanPart}.`;
+      return `Сигналы противоречат друг другу: ИИ ${aiPower} против человека ${humanPower} при уверенности ${confidence}%. Похоже, материал был создан человеком, а затем частично обработан нейросетью — либо статистика содержимого спорит с метаданными. ${basisLine} ${aiPart}. ${humanPart}.`;
     case 'UNCERTAIN':
     default:
-      return `Однозначных доказательств ни в одну сторону нет (уверенность ${confidence}%). Сила сигналов: ИИ ${aiPower}, человек ${humanPower}. ${basis[0].toUpperCase()}${basis.slice(1)}. ${aiPart}. ${humanPart}.`;
+      return `Однозначных доказательств ни в одну сторону нет (уверенность ${confidence}%). Сила сигналов: ИИ ${aiPower}, человек ${humanPower}. ${basisLine} ${aiPart}. ${humanPart}.`;
   }
 }
 
