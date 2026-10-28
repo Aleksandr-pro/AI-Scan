@@ -1,0 +1,113 @@
+name: Build APK
+
+on:
+  push:
+    branches: ['arena/865c1f2d-ai-scan', 'main']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Установка зависимостей
+        run: npm ci
+
+      - name: Проверка типов
+        run: npx tsc --noEmit
+
+      - name: Юнит-тесты движка анализа
+        run: npx jest --ci
+
+      - name: Lint
+        run: npx eslint . --quiet
+
+      - name: Setup Java (Temurin 17)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Проверка NDK
+        run: |
+          set -e
+          NDK_DIR="${ANDROID_HOME}/ndk/26.1.10909125"
+          if [ ! -d "$NDK_DIR" ]; then
+            SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+            if [ ! -x "$SDKMANAGER" ]; then
+              SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -name sdkmanager -type f | head -1)"
+            fi
+            yes | "$SDKMANAGER" --sdk_root="${ANDROID_HOME}" "ndk;26.1.10909125"
+          fi
+          ls -d "$NDK_DIR"
+
+      - name: Сборка release APK
+        run: |
+          set -o pipefail
+          cd android
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a 2>&1 | tee "$RUNNER_TEMP/gradle.log"
+
+      - name: Диагностика ошибки сборки
+        if: failure()
+        run: |
+          LOG="$RUNNER_TEMP/gradle.log"
+          if [ ! -f "$LOG" ]; then echo "::error::Лог gradle не найден"; exit 0; fi
+          {
+            echo "### ❌ Ошибка Gradle"
+            echo '```'
+            grep -B2 -A25 -E "FAILURE:|What went wrong|error:|^e: |Execution failed|Could not resolve" "$LOG" | tail -150 || tail -60 "$LOG"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep -B2 -A15 -E "FAILURE:|What went wrong|^e: |Execution failed|Could not resolve" "$LOG" \
+            | head -c 12000 | sed 's/^/::error title=Gradle::/' | head -40 || true
+
+      - name: Артефакты и версия
+        id: meta
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          OUT="AI-Scan-v${VERSION}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$OUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "out=$OUT" >> "$GITHUB_OUTPUT"
+          ls -la "$OUT"
+
+      - name: Публикация версионного релиза
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V="${{ steps.meta.outputs.version }}"
+          OUT="${{ steps.meta.outputs.out }}"
+          if gh release view "v$V" >/dev/null 2>&1; then
+            gh release upload "v$V" "$OUT" --clobber
+          else
+            gh release create "v$V" "$OUT" \
+              --title "AI Scan v$V" \
+              --notes "Нативный детектор ИИ-контента (фото/видео/аудио). Установка: скачайте APK и откройте его на устройстве (разрешите установку из неизвестных источников)."
+          fi
+
+      - name: Обновление «последней» сборки
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OUT="${{ steps.meta.outputs.out }}"
+          cp "$OUT" AI-Scan-latest.apk
+          if gh release view apk-latest >/dev/null 2>&1; then
+            gh release upload apk-latest AI-Scan-latest.apk --clobber
+          else
+            gh release create apk-latest AI-Scan-latest.apk \
+              --title "AI Scan — последняя сборка" \
+              --notes "Свежайший APK из ветки разработки. Версионные релизы — в разделе Releases."
+          fi
