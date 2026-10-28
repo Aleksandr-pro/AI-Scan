@@ -61,8 +61,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   sectionHint: {
-    color: colors.textFaint,
-    fontSize: 12,
+    color: colors.textDim,
+    fontSize: 13,
   },
   chip: {
     paddingHorizontal: 8,

@@ -11,8 +11,7 @@ import { colors, spacing, verdictTheme } from '../theme';
 import { fmtBytes, fmtDate } from '../format';
 import { SectionTitle } from '../components/Card';
 import {
-  IconArrowRight,
-  IconClock,
+  IconChevronRight,
   IconInfo,
   IconPhoto,
   IconPulse,
@@ -21,7 +20,6 @@ import {
   IconUpload,
   IconVideo,
   IconAudio,
-  VerdictIcon,
 } from '../components/Icon';
 
 interface Props {
@@ -32,34 +30,43 @@ interface Props {
   onOpenAbout: () => void;
 }
 
-const KINDS: Array<{ kind: MediaKind; title: string; sub: string; Icon: typeof IconPhoto }> = [
-  { kind: 'photo', title: 'Фото', sub: 'JPG · PNG · WebP · HEIC', Icon: IconPhoto },
-  { kind: 'video', title: 'Видео', sub: 'MP4 · MOV · MKV · WebM', Icon: IconVideo },
-  { kind: 'audio', title: 'Аудио', sub: 'WAV · MP3 · M4A · FLAC', Icon: IconAudio },
+const KINDS: Array<{ kind: MediaKind; title: string; Icon: typeof IconPhoto }> = [
+  { kind: 'photo', title: 'Фото', Icon: IconPhoto },
+  { kind: 'video', title: 'Видео', Icon: IconVideo },
+  { kind: 'audio', title: 'Аудио', Icon: IconAudio },
 ];
 
-const VERDICT_TAG: Record<AnalysisResult['verdict'], string> = {
-  AI: 'ИИ',
-  HUMAN: 'ЧЕЛ',
-  MIXED: 'СМЕШ',
-  UNCERTAIN: '?',
-};
+/** Подпись справа: процент всегда с расшифровкой, для UNCERTAIN — «Неясно». */
+function verdictTag(r: AnalysisResult): string {
+  switch (r.verdict) {
+    case 'AI':
+      return `${r.confidence}% ИИ`;
+    case 'HUMAN':
+      return `${r.confidence}% ЧЕЛ`;
+    case 'MIXED':
+      return 'смешано';
+    default:
+      return 'Неясно';
+  }
+}
+
+/** Мини-спектр зоны приёма — тема продукта вместо декоративного круга. */
+const SPECTRUM = [6, 11, 19, 13, 25, 15, 29, 17, 23, 11, 27, 15, 9, 21, 13, 7, 17, 10, 14, 8];
 
 export function HomeScreen({ history, onPick, onOpenResult, onOpenHistory, onOpenAbout }: Props) {
   const [kind, setKind] = useState<MediaKind>('photo');
   const recent = history.slice(0, 3);
-  const selected = KINDS.find(k => k.kind === kind) ?? KINDS[0];
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Text style={styles.logo}>
-          AI <Text style={styles.logoAccent}>SCAN</Text>
+          AI <Text style={styles.logoStrong}>SCAN</Text>
         </Text>
         <Text style={styles.tagline}>Детектор ИИ-контента: фото · видео · аудио</Text>
       </View>
 
-      {/* Единая зона загрузки: сегменты + центральное действие */}
+      {/* Единая зона загрузки: пунктир на фоне страницы, без внешней карточки */}
       <View style={styles.dropzone}>
         <View style={styles.segment}>
           {KINDS.map(k => {
@@ -87,39 +94,39 @@ export function HomeScreen({ history, onPick, onOpenResult, onOpenHistory, onOpe
           onPress={() => onPick(kind)}
           style={({ pressed }) => [styles.dropzoneAction, pressed && styles.pressed]}
         >
-          <View style={styles.dropzoneIcon}>
-            <IconUpload size={26} color={colors.accent} strokeWidth={1.6} />
-          </View>
+          <IconUpload size={40} color={colors.accent} strokeWidth={1.5} />
           <Text style={styles.dropzoneTitle}>Выбрать файл</Text>
-          <Text style={styles.dropzoneHint}>Нажмите, чтобы открыть проводник</Text>
+          <Text style={styles.dropzoneHint}>
+            JPG · PNG · WebP · HEIC — нажмите, чтобы открыть проводник
+          </Text>
+          <View style={styles.spectrum} accessibilityElementsHidden>
+            {SPECTRUM.map((h, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.spectrumBar,
+                  { height: h },
+                  i % 4 === 0 ? styles.spectrumBarMuted : { opacity: i % 2 === 0 ? 0.9 : 0.55 },
+                ]}
+              />
+            ))}
+          </View>
         </Pressable>
-
-        <Text style={styles.dropzoneFormats}>{selected.sub}</Text>
       </View>
 
-      {/* Основное действие второго уровня */}
+      {/* Единственный переход во «Как работает» — заметная строка-кнопка */}
       <Pressable
-        onPress={() => onPick('any')}
-        style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
+        onPress={onOpenAbout}
+        style={({ pressed }) => [styles.aboutRow, pressed && styles.pressed]}
       >
-        <Text style={styles.primaryBtnText}>Выбрать файл вручную</Text>
-        <IconArrowRight size={17} color={colors.accent} strokeWidth={2} />
+        <IconInfo size={18} color={colors.accent} />
+        <Text style={styles.aboutRowText}>Как работает анализ</Text>
+        <View style={{ flex: 1 }} />
+        <IconChevronRight size={18} color={colors.textDim} />
       </Pressable>
 
-      {/* Второстепенные переходы — без рамок, только воздух */}
-      <View style={styles.linksRow}>
-        <Pressable onPress={onOpenAbout} style={({ pressed }) => [styles.link, pressed && styles.pressed]}>
-          <IconInfo size={16} color={colors.textDim} />
-          <Text style={styles.linkText}>Как работает анализ</Text>
-        </Pressable>
-        <Pressable onPress={onOpenHistory} style={({ pressed }) => [styles.link, pressed && styles.pressed]}>
-          <IconClock size={16} color={colors.textDim} />
-          <Text style={styles.linkText}>История проверок</Text>
-        </Pressable>
-      </View>
-
       {recent.length > 0 && (
-        <View>
+        <Pressable onPress={onOpenHistory} style={({ pressed }) => [pressed && styles.pressed]}>
           <SectionTitle title="Последние проверки" hint="все →" />
           <View style={styles.histList}>
             {recent.map((r, idx) => {
@@ -134,37 +141,36 @@ export function HomeScreen({ history, onPick, onOpenResult, onOpenHistory, onOpe
                     pressed && styles.pressed,
                   ]}
                 >
-                  <VerdictIcon verdict={r.verdict} size={19} color={t.color} />
+                  <View style={[styles.histBar, { backgroundColor: t.color }]} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.histName} numberOfLines={1}>
                       {r.tech.fileName}
                     </Text>
                     <Text style={styles.histMeta} numberOfLines={1}>
-                      {fmtDate(r.createdAt)} · {fmtBytes(r.tech.fileSize)} · {r.confidence}%
+                      {fmtDate(r.createdAt)} · {fmtBytes(r.tech.fileSize)}
                     </Text>
                   </View>
-                  <Text style={[styles.histTag, { color: t.color }]}>
-                    {VERDICT_TAG[r.verdict]}
-                  </Text>
+                  <Text style={[styles.histTag, { color: t.color }]}>{verdictTag(r)}</Text>
                 </Pressable>
               );
             })}
           </View>
-        </View>
+        </Pressable>
       )}
 
-      <View style={styles.factsRow}>
-        <View style={styles.fact}>
-          <IconShield size={14} color={colors.textDim} />
-          <Text style={styles.factText}>офлайн</Text>
+      {/* Ключевые преимущества — заметные значки */}
+      <View style={styles.chipsRow}>
+        <View style={styles.chip}>
+          <IconShield size={15} color={colors.accent} />
+          <Text style={styles.chipText}>офлайн</Text>
         </View>
-        <View style={styles.fact}>
-          <IconPhone size={14} color={colors.textDim} />
-          <Text style={styles.factText}>на устройстве</Text>
+        <View style={styles.chip}>
+          <IconPhone size={15} color={colors.accent} />
+          <Text style={styles.chipText}>на устройстве</Text>
         </View>
-        <View style={styles.fact}>
-          <IconPulse size={14} color={colors.textDim} />
-          <Text style={styles.factText}>эвристика + спектры</Text>
+        <View style={styles.chip}>
+          <IconPulse size={15} color={colors.accent} />
+          <Text style={styles.chipText}>эвристика + спектры</Text>
         </View>
       </View>
 
@@ -172,7 +178,7 @@ export function HomeScreen({ history, onPick, onOpenResult, onOpenHistory, onOpe
         Приложение даёт вероятностную оценку и поясняет каждый признак. Это не судебная экспертиза:
         сильная обработка может запутать любую автоматическую проверку.
       </Text>
-      <View style={{ height: 40 }} />
+      <View style={{ height: spacing.xxl }} />
     </ScrollView>
   );
 }
@@ -180,29 +186,30 @@ export function HomeScreen({ history, onPick, onOpenResult, onOpenHistory, onOpe
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: spacing.l, paddingTop: spacing.xl },
-  header: { marginBottom: spacing.xl, marginTop: spacing.s },
+  header: { marginBottom: spacing.xl },
   logo: {
     color: colors.text,
-    fontSize: 40,
-    fontWeight: '900',
-    letterSpacing: 4,
+    fontSize: 37,
+    fontWeight: '400',
+    letterSpacing: 1.5,
   },
-  logoAccent: { color: colors.accent },
-  tagline: { color: colors.textDim, fontSize: 13, marginTop: 5, fontWeight: '400' },
+  logoStrong: { fontWeight: '900', letterSpacing: 0.5 },
+  tagline: { color: colors.textDim, fontSize: 13.5, marginTop: spacing.s, fontWeight: '400' },
 
-  /* Зона загрузки — главный герой страницы */
+  /* Зона загрузки: пунктир на фоне страницы */
   dropzone: {
-    backgroundColor: colors.card,
-    borderRadius: 22,
-    paddingHorizontal: spacing.m,
-    paddingTop: spacing.m,
-    paddingBottom: spacing.l,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderStyle: 'dashed',
+    borderWidth: 1.5,
+    borderColor: 'rgba(147,160,184,0.5)',
+    borderRadius: 20,
+    paddingHorizontal: spacing.l,
+    paddingTop: spacing.l,
+    paddingBottom: spacing.xl,
+    marginBottom: spacing.l,
   },
   segment: {
     flexDirection: 'row',
-    backgroundColor: colors.bg,
+    backgroundColor: colors.bgElevated,
     borderRadius: 13,
     padding: 3,
     gap: 2,
@@ -221,91 +228,90 @@ const styles = StyleSheet.create({
   segmentTextActive: { color: colors.text, fontWeight: '700' },
   dropzoneAction: {
     alignItems: 'center',
-    paddingVertical: 24,
-    gap: 6,
+    paddingTop: spacing.xl,
+    gap: 0,
   },
-  dropzoneIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(34,211,238,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(34,211,238,0.38)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  dropzoneTitle: { color: '#F4F7FD', fontSize: 17, fontWeight: '800', marginTop: 4 },
-  dropzoneHint: { color: colors.textFaint, fontSize: 12.5 },
-  dropzoneFormats: {
-    color: colors.textFaint,
-    fontSize: 11.5,
+  dropzoneTitle: { color: '#F4F7FD', fontSize: 17, fontWeight: '800', marginTop: spacing.l },
+  dropzoneHint: {
+    color: colors.textDim,
+    fontSize: 13,
+    fontWeight: '500',
     textAlign: 'center',
-    letterSpacing: 0.4,
-    fontFamily: 'monospace',
+    marginTop: spacing.s,
+    lineHeight: 18,
   },
-
-  /* Основная кнопка — тонированный акцент: контраст без большой яркости */
-  primaryBtn: {
-    marginTop: spacing.m,
-    backgroundColor: 'rgba(34,211,238,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(34,211,238,0.45)',
-    borderRadius: 14,
-    paddingVertical: 13,
-    paddingHorizontal: spacing.l,
+  spectrum: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  primaryBtnText: { color: colors.accent, fontSize: 15, fontWeight: '800' },
-
-  /* Ссылки */
-  linksRow: {
-    flexDirection: 'row',
-    gap: spacing.xl,
+    alignItems: 'flex-end',
+    gap: 3,
+    height: 30,
     marginTop: spacing.l,
-    paddingLeft: 2,
   },
-  link: {
+  spectrumBar: {
+    width: 3.5,
+    borderRadius: 2,
+    backgroundColor: colors.accent,
+  },
+  spectrumBarMuted: {
+    backgroundColor: colors.cardBorder,
+    opacity: 1,
+  },
+
+  /* «Как работает анализ» — заметная строка */
+  aboutRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    paddingVertical: 6,
+    gap: 10,
+    backgroundColor: colors.bgElevated,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.l,
   },
-  linkText: { color: colors.textDim, fontSize: 13, fontWeight: '600' },
+  aboutRowText: { color: colors.text, fontSize: 15.5, fontWeight: '700' },
 
-  /* Последние проверки — чистый лист */
+  /* Последние проверки — строки с цветным индикатором слева */
   histList: { marginTop: 2 },
   histRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.m,
-    paddingVertical: 13,
+    gap: spacing.l,
+    paddingVertical: 14,
   },
   histRowLine: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.07)',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
-  histName: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  histMeta: { color: colors.textFaint, fontSize: 11.5, marginTop: 3 },
-  histTag: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8 },
+  histBar: {
+    width: 4,
+    height: 32,
+    borderRadius: 3,
+  },
+  histName: { color: colors.text, fontSize: 14.5, fontWeight: '700' },
+  histMeta: { color: colors.textDim, fontSize: 13, marginTop: 3 },
+  histTag: { fontSize: 13, fontWeight: '800', letterSpacing: 0.2 },
 
-  /* Факты вместо пилюль */
-  factsRow: {
+  /* Преимущества — заметные значки */
+  chipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.l,
+    gap: spacing.s,
     marginTop: spacing.xl,
   },
-  fact: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  factText: { color: colors.textFaint, fontSize: 11.5 },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: colors.bgElevated,
+    borderRadius: 11,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+  },
+  chipText: { color: colors.text, fontSize: 12.5, fontWeight: '700' },
 
   disclaimer: {
-    color: colors.textFaint,
-    fontSize: 12,
-    lineHeight: 17,
+    color: colors.textDim,
+    fontSize: 13,
+    lineHeight: 19,
     marginTop: spacing.l,
   },
   pressed: { opacity: 0.7 },
