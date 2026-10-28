@@ -185,7 +185,7 @@ function buildSummary(
   // «Вывод по метаданным…» / особый случай пустых данных.
   const basisLine = basis.startsWith('данных')
     ? 'Данных для вывода нет.'
-    : `Вывод ${basis[0].toUpperCase()}${basis.slice(1)}.`;
+    : `Вывод ${basis}.`;
 
   switch (verdict) {
     case 'AI':
