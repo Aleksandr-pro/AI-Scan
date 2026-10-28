@@ -440,6 +440,18 @@ td { line-height: 1.5; }
   margin: 0 0 10px;
 }
 .author-note-body p:last-child { margin-bottom: 0; }
+.author-name {
+  font-size: 17px !important;
+  font-weight: 600;
+  color: var(--text) !important;
+  margin: 0 0 12px !important;
+}
+.author-name span {
+  font-weight: 400;
+  font-size: 14.5px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
 .author-note-body strong { color: var(--text); font-weight: 600; }
 
 /* ── Теги и низ статьи ─────────────────────────────────── */
